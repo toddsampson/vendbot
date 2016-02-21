@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>VendBot</title>
+<meta charset="utf-8" />
+<style type="text/css">
+  body { font-family: "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif; }
+  .cb { clear: both; }
+  .button {
+    display: block;
+    float: left;
+    padding: 10px;
+    margin-right: 10px;
+    height: 25px;
+    width: 100px;
+    background: #095ab5;
+    color: #fff;
+    text-align: center;
+    font: bold 18px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
+  }
+  .move_forward, .vend {
+    margin-left: 55px;
+  }
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script type="text/javascript" src="assets/javascripts/eventemitter2.min.js"></script>
+<script type="text/javascript" src="assets/javascripts//roslib.min.js"></script>
+
+<script type="text/javascript">
+;
+$(function() {
+
+  var $movementLoop;
+  var $leftLoop;
+  var $rightLoop;
+
+  var $ros = new ROSLIB.Ros({
+    url : 'ws://localhost:9090'
+  });
+
+  $ros.on('connection', function() {
+    console.log('Connected to websocket server.');
+  });
+
+  $ros.on('error', function(error) {
+    console.log('Error connecting to websocket server: ', error);
+  });
+
+  $ros.on('close', function() {
+    console.log('Connection to websocket server closed.');
+  });
+
+  var $vend = new ROSLIB.Topic({
+    ros : $ros,
+    name : '/vend',
+    messageType : 'std_msgs/Bool'
+  });
+
+  var $dovend = new ROSLIB.Message({
+    data : true,
+  });
+
+  $('#actions .vend').on('click', function() {
+    $vend.publish($dovend);
+console.log('vend was called AND WAS executed');
+  });
+
+
+  var $cmdVel = new ROSLIB.Topic({
+    ros : $ros,
+    name : '/cmd_vel',
+    messageType : 'geometry_msgs/Twist'
+  });
+
+  var $mforward = new ROSLIB.Message({
+    linear : {
+      x : 0.05,
+      y : 0.0,
+      z : 0.0
+    },
+    angular : {
+      x : 0.0,
+      y : 0.0,
+      z : 0.0
+    }
+  });
+
+  var $tleft = new ROSLIB.Message({
+    linear : {
+      x : 0.0,
+      y : 1.0,
+      z : 0.0
+    },
+    angular : {
+      x : 0.0,
+      y : 0.0,
+      z : 0.0
+    }
+  });
+
+  var $tright = new ROSLIB.Message({
+    linear : {
+      x : 0.0,
+      y : -1.0,
+      z : 0.0
+    },
+    angular : {
+      x : 0.0,
+      y : 0.0,
+      z : 0.0
+    }
+  });
+
+  function move_forward(){
+    $cmdVel.publish($mforward);
+console.log('move forward was called AND WAS executed');
+  }
+
+  function turn_left(){
+    $cmdVel.publish($tleft);
+console.log('left turn called AND WAS executed');
+  }
+
+  function turn_right(){
+    $cmdVel.publish($tright);
+console.log('right turn called AND WAS executed');
+  }
+
+  $('#actions .move_forward').on('mousedown', function() {
+console.log('mousedown forward');
+    $movementLoop = setInterval(move_forward, 200);
+  });
+
+  $('#actions .turn_left').on('mousedown', function() {
+console.log('mousedown left');
+    $leftLoop = setInterval(turn_left, 200);
+  });
+  
+  $('#actions .turn_right').on('mousedown', function() {
+console.log('mousedown right');
+    $rightLoop = setInterval(turn_right, 200);
+  });
+
+  $('body').on('mouseup', function() {
+console.log('mouseup body');
+    clearInterval($movementLoop);
+    clearInterval($leftLoop);
+    clearInterval($rightLoop);
+  });
+
+});
+</script>
+</head>
+
+<body>
+  <h1>VendBot</h1>
+  <div id='actions'>
+    <div class='move_forward button'>Forward</div>
+    <div class='cb'>&nbsp;</div>
+    <div class='turn_left button'>Left</div>
+    <div class='turn_right button'>Right</div>
+    <div class='cb'>&nbsp;</div>
+    <div class='cb'>&nbsp;</div>
+    <div class='vend button'>Vend</div>
+  </div>
+</body>
+</html>
