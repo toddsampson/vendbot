@@ -6,27 +6,20 @@ ros::NodeHandle  nh;
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
-  digitalWrite(13, HIGH-digitalRead(13));  //toggle led
-  int speed_value;
-  int angle_value;
-  int leftwheelspeed;
-  int rightwheelspeed;
-  
-  speed_value = msg.linear.x;
-  angle_value = msg.angular.z;
-  Serial.println("hi!");
+  digitalWrite(13, HIGH-digitalRead(13));
+  Serial.println("hi!----------------------");
 }
 
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
 
 void setup(){
   pinMode(13, OUTPUT);
-
   nh.initNode();
   nh.subscribe(sub);
 }
 
 void loop(){
+  Serial.println("loop");
   nh.spinOnce();
-  delay(1);
+  delay(200);
 }
