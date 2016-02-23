@@ -12,3 +12,4 @@ Playing with a few ideas with ROS.
 7. Do a catkin build on Vendbot: `cd ~/catkin_ws; catkin_make`
 8. Source the bash devel setup one more time: `~/catkin_ws/devel/setup.bash`
 9. Run the launch file: `roslaunch vendbot mobile_base.launch`
+10. If you want to set a port other than /dev/ttyACM0 for the mobile_base, add mobile_base_port:=/dev/ttyYOURs to the launch command above.
