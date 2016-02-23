@@ -1,9 +1,10 @@
 <launch>
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch">
-    <arg name="port" value="9090"/>
-  </include>
+  <arg name="mobile_base_port" default="/dev/ttyACM0" /> 
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+
   <include file="$(find rosserial_server)/launch/serial.launch">
-    <arg name="port" value="/dev/ttyACM0" />
+    <arg name="port" value="$(arg mobile_base_port)" />
   </include>
 </launch>
 
