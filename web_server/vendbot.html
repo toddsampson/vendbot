@@ -12,15 +12,13 @@
     padding: 10px;
     margin-right: 10px;
     height: 25px;
-    width: 100px;
+    width: 180px;
     background: #095ab5;
     color: #fff;
     text-align: center;
     font: bold 18px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
   }
-  .move_forward, .vend {
-    margin-left: 55px;
-  }
+  .turn_left, .turn_right { width: 75px;}
 </style>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 <script type="text/javascript" src="assets/javascripts/eventemitter2.min.js"></script>
@@ -31,6 +29,7 @@
 $(function() {
 
   var $movementLoop;
+  var $backLoop;
   var $leftLoop;
   var $rightLoop;
 
@@ -85,6 +84,19 @@ console.log('vend was called AND WAS executed');
     }
   });
 
+  var $mbackward= new ROSLIB.Message({
+    linear : {
+      x : -1.0,
+      y : 0.0,
+      z : 0.0
+    },
+    angular : {
+      x : 0.0,
+      y : 0.0,
+      z : 0.0
+    }
+  });
+
   var $tleft = new ROSLIB.Message({
     linear : {
       x : 0.0,
@@ -116,6 +128,11 @@ console.log('vend was called AND WAS executed');
 console.log('move forward was called AND WAS executed');
   }
 
+  function move_backward(){
+    $cmdVel.publish($mbackward);
+console.log('move backward was called AND WAS executed');
+  }
+
   function turn_left(){
     $cmdVel.publish($tleft);
 console.log('left turn called AND WAS executed');
@@ -128,22 +145,28 @@ console.log('right turn called AND WAS executed');
 
   $('#actions .move_forward').on('mousedown', function() {
 console.log('mousedown forward');
-    $movementLoop = setInterval(move_forward, 200);
+    $movementLoop = setInterval(move_forward, 15);
+  });
+
+  $('#actions .move_backward').on('mousedown', function() {
+console.log('mousedown backward');
+    $backLoop = setInterval(move_backward, 15);
   });
 
   $('#actions .turn_left').on('mousedown', function() {
 console.log('mousedown left');
-    $leftLoop = setInterval(turn_left, 200);
+    $leftLoop = setInterval(turn_left, 15);
   });
   
   $('#actions .turn_right').on('mousedown', function() {
 console.log('mousedown right');
-    $rightLoop = setInterval(turn_right, 200);
+    $rightLoop = setInterval(turn_right, 15);
   });
 
   $('body').on('mouseup', function() {
 console.log('mouseup body');
     clearInterval($movementLoop);
+    clearInterval($backLoop);
     clearInterval($leftLoop);
     clearInterval($rightLoop);
   });
@@ -159,6 +182,8 @@ console.log('mouseup body');
     <div class='cb'>&nbsp;</div>
     <div class='turn_left button'>Left</div>
     <div class='turn_right button'>Right</div>
+    <div class='cb'>&nbsp;</div>
+    <div class='move_backward button'>Backward</div>
     <div class='cb'>&nbsp;</div>
     <div class='cb'>&nbsp;</div>
     <div class='vend button'>Vend</div>
