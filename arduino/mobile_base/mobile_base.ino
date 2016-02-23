@@ -15,24 +15,32 @@ void messageCb(const geometry_msgs::Twist& msg)
   
   forward = msg.linear.x;
   turn = msg.angular.z;
-  if(forward == 1){
-    Serial.println("MOVING FORWARD"); 
-    motor1.run(FORWARD);
-    motor2.run(FORWARD);
-    delay(10);
-  } else {
-    if(turn == 1){
-      Serial.println("TURN LEFT");
+  if(forward == 1 || turn == 1 || turn == -1){
+    if(forward == 1){
+      Serial.println("MOVING FORWARD"); 
       motor1.run(FORWARD);
-      motor2.run(BACKWARD);
-      delay(10);
-    }
-    if(turn == -1){
-      Serial.println("TURN RIGHT");
-      motor1.run(BACKWARD);
+      motor1.setSpeed(20);
       motor2.run(FORWARD);
-      delay(10);
+      motor2.setSpeed(20);
+    } else {
+      if(turn == 1){
+        Serial.println("TURN LEFT");
+        motor1.run(FORWARD);
+        motor1.setSpeed(20);
+        motor2.run(BACKWARD);
+        motor2.setSpeed(20);
+      }
+      if(turn == -1){
+        Serial.println("TURN RIGHT");
+        motor1.run(BACKWARD);
+        motor1.setSpeed(20);
+        motor2.run(FORWARD);
+        motor2.setSpeed(20);
+      }
     }
+    delay(200);
+    motor1.run(RELEASE);
+    motor2.run(RELEASE);
   }
 }
 
@@ -43,9 +51,9 @@ void setup(){
   pinMode(13, OUTPUT);
   nh.initNode();
   nh.subscribe(sub);
-  motor1.setSpeed(200);
+  motor1.setSpeed(20);
   motor1.run(RELEASE);
-  motor2.setSpeed(200);
+  motor2.setSpeed(20);
   motor2.run(RELEASE);
 }
 
