@@ -53,7 +53,7 @@ void messageCb(const geometry_msgs::Twist& msg)
       }
       delay(300);
       running = 0;
-      delay(50);
+      delay(10);
       if(running == 0){
         motor1.run(RELEASE);
         motor2.run(RELEASE);
