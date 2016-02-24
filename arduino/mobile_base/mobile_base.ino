@@ -8,18 +8,21 @@ AF_DCMotor motor1(3);
 AF_DCMotor motor2(4);
 int turnSpeed = 125;
 int moveSpeed = 175;
-int running = 0;
+int runningFor = 0;
+unsigned long lastActionTime = 0;
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
   int movement;
   int turn;
-  if(running == 0){
+  unsigned long thisActionTime = millis();
+  if(runningFor == 0 || runningFor > 55){
     movement = msg.linear.x;
     turn = msg.angular.z;
     if(movement == 1 || movement == -1 || turn == 1 || turn == -1){
       digitalWrite(13, HIGH);
-      running = 1;
+      lastActionTime = thisActionTime;
+      runningFor = 1;
       if(movement == 1 || movement == -1){
         if(movement == 1){
           Serial.println("MOVING FORWARD"); 
@@ -51,13 +54,10 @@ void messageCb(const geometry_msgs::Twist& msg)
           motor2.setSpeed(turnSpeed);
         }
       }
-      delay(300);
-      running = 0;
-      delay(10);
-      if(running == 0){
-        motor1.run(RELEASE);
-        motor2.run(RELEASE);
-        digitalWrite(13, LOW);
+      delay(200);
+      if(lastActionTime == thisActionTime){
+        Serial.println("THIS ACTION RAN IT OUT");
+        runningFor = 0;
       }
     }
   }
@@ -77,6 +77,13 @@ void setup(){
 }
 
 void loop(){
+  if(runningFor == 0){
+    motor1.run(RELEASE);
+    motor2.run(RELEASE);
+    digitalWrite(13, LOW);
+  } else {
+    runningFor++;
+  }
   nh.spinOnce();
   delay(1);
 }
