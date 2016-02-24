@@ -13,25 +13,25 @@ unsigned long lastActionTime = 0;
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
-  int movement;
-  int turn;
+  float movement;
+  float turn;
   unsigned long thisActionTime = millis();
   if(runningFor == 0 || runningFor > 55){
     movement = msg.linear.x;
     turn = msg.angular.z;
-    if(movement == 1 || movement == -1 || turn == 1 || turn == -1){
+    if(movement > 0.1 || movement < -0.1 || turn > 0.1 || turn < -0.1){
       digitalWrite(13, HIGH);
       lastActionTime = thisActionTime;
       runningFor = 1;
-      if(movement == 1 || movement == -1){
-        if(movement == 1){
+      if(movement > 0.1 || movement < -0.1){
+        if(movement > 0.1){
           Serial.println("MOVING FORWARD"); 
           motor1.run(FORWARD);
           motor1.setSpeed(moveSpeed);
           motor2.run(FORWARD);
           motor2.setSpeed(moveSpeed);
         }
-        if(movement == -1){
+        if(movement < -0.1){
           Serial.println("MOVING BACKWARD"); 
           motor1.run(BACKWARD);
           motor1.setSpeed(moveSpeed);
@@ -39,14 +39,14 @@ void messageCb(const geometry_msgs::Twist& msg)
           motor2.setSpeed(moveSpeed);          
         }
       } else {
-        if(turn == 1){
+        if(turn > 0.1){
           Serial.println("TURN LEFT");
           motor1.run(BACKWARD);
           motor1.setSpeed(turnSpeed);
           motor2.run(FORWARD);
           motor2.setSpeed(turnSpeed);
         }
-        if(turn == -1){
+        if(turn < -0.1){
           Serial.println("TURN RIGHT");
           motor1.run(FORWARD);
           motor1.setSpeed(turnSpeed);
