@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mobile_base">
+
+  <xacro:property name="platform_l" value=".2032" />
+  <xacro:property name="platform_w" value=".2286" />
+  <xacro:property name="platform_h" value=".0064" />
+  <xacro:property name="wheel_r" value=".0328" />
+  <xacro:property name="wheel_l" value=".0267" />
+  <xacro:property name="wheel_w_offset" value=".0025" />
+  <xacro:property name="wheel_h_offset" value="-.015" />
+  <xacro:property name="pi" value="3.14159265359" />
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${platform_l} ${platform_w} ${platform_h}"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="wheel_left">
+    <visual>
+      <origin xyz="0 ${platform_w/2 + wheel_l/2 + wheel_w_offset} ${wheel_h_offset}" rpy="${pi/2} 0 0" />
+      <geometry>
+        <cylinder radius="${wheel_r}" length="${wheel_l}" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="wheel_right">
+    <visual>
+      <origin xyz="0 ${(platform_w/2 + wheel_l/2 + wheel_w_offset) * -1} ${wheel_h_offset}" rpy="${pi/2 * -1} 0 0" />
+      <geometry>
+        <cylinder radius="${wheel_r}" length="${wheel_l}" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="wheel_left_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="wheel_left"/>
+  </joint>
+  <joint name="wheel_right_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="wheel_right"/>
+  </joint>
+
+</robot>
