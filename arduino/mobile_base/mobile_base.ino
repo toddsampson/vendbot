@@ -7,12 +7,17 @@
 ros::NodeHandle  nh;
 AF_DCMotor motorLeft(3); //left wheel
 AF_DCMotor motorRight(1); //right wheel
+float currX = 0.0;
+float currZ = 0.0;
+float goalX = 0.0;
+float goalZ = 0.0;
+int running = 0;
 int turnSpeed = 125;
 int moveSpeed = 195;
-int runningFor = 0;
 int leftHeading = 0; //1 forward, 2 backward
 int rightHeading = 0; //1 forward, 2 backward
-unsigned long lastActionTime = 0;
+int forwardBlocked = 0; //0 unblocked, 1 blocked
+unsigned long lastMssgTime = 0;
 std_msgs::String debug_msg;
 ros::Publisher Debug ("debug_bot", &debug_msg);
 #define LEFT digitalPinToInterrupt(20)
@@ -25,90 +30,72 @@ int lastSpeed[2] = {
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
-  float movement;
-  float turn;
-  String testString;
-  unsigned long thisActionTime;
-  if(runningFor == 0){
-    movement = msg.linear.x;
-    turn = msg.angular.z;
-    if(movement > 0.1 || movement < -0.1 || turn > 0.1 || turn < -0.1){
-      thisActionTime = millis();
-      lastActionTime = thisActionTime;
-      debug_msg.data = "NEW ACTION STARTING";
-      Debug.publish(&debug_msg);
-      runningFor = 1;
-      if(movement > 0.1 || movement < -0.1){
-        if(movement > 0.1){
-          debug_msg.data = "MOVING FORWARD";
-          Debug.publish(&debug_msg);
-          leftHeading = 1;
-          rightHeading = 1;
-          motorRight.run(FORWARD);
-          motorRight.setSpeed(moveSpeed);
-          motorLeft.run(FORWARD);
-          motorLeft.setSpeed(moveSpeed);
-        }
-        if(movement < -0.1){
-          debug_msg.data = "MOVING BACKWARD";
-          Debug.publish(&debug_msg);
-          leftHeading = 2;
-          rightHeading = 2;
-          motorLeft.run(BACKWARD);
-          motorLeft.setSpeed(moveSpeed);
-          motorRight.run(BACKWARD);
-          motorRight.setSpeed(moveSpeed);          
-        }
-      } else {
-        if(turn > 0.1){
-          debug_msg.data = "TURN LEFT";
-          Debug.publish(&debug_msg);
-          leftHeading = 2;
-          rightHeading = 1;
-          motorLeft.run(BACKWARD);
-          motorLeft.setSpeed(turnSpeed);
-          motorRight.run(FORWARD);
-          motorRight.setSpeed(turnSpeed);
-        }
-        if(turn < -0.1){
-          debug_msg.data = "TURN RIGHT";
-          Debug.publish(&debug_msg);
-          leftHeading = 1;
-          rightHeading = 2;
-          motorLeft.run(FORWARD);
-          motorLeft.setSpeed(turnSpeed);
-          motorRight.run(BACKWARD);
-          motorRight.setSpeed(turnSpeed);
-        }
-      }
-      delay(200);
-      debug_msg.data = "AFTER DELAY";
-      Debug.publish(&debug_msg); 
-      debug_msg.data = "last action time";
-      //debug_msg.data += lastActionTime;
-      Debug.publish(&debug_msg);
-      debug_msg.data = "this action time";
-      //debug_msg.data += thisActionTime;
-      Debug.publish(&debug_msg);
-      if(lastActionTime == thisActionTime){
-        debug_msg.data = "THIS ACTION RAN IT OUT";
-        Debug.publish(&debug_msg);
-      }
-      motorLeft.run(RELEASE);
-      motorRight.run(RELEASE);
-      runningFor = 0;
-      leftHeading = 0;
-      rightHeading = 0;
-    }
-  } else {
-    if(runningFor == 1){
-      debug_msg.data = "RUNNING == 1 - MESSAGE RECEIVED AND SKIPPED BECAUSE WE ARE ALREADY RUNNING";
-      Debug.publish(&debug_msg);
-    } else {
-      debug_msg.data = "RUNNING != 1 - MESSAGE RECEIVED AND SKIPPED BECAUSE WE ARE ALREADY RUNNING";
-      Debug.publish(&debug_msg);           
-    }
-  }
+  goalX = msg.linear.x;
+  goalZ = msg.angular.z;
+  lastMssgTime = millis();
+}
+
+void moveForward()
+{
+  debug_msg.data = "MOVING FORWARD";
+  Debug.publish(&debug_msg);
+  running = 1;
+  leftHeading = 1;
+  rightHeading = 1;
+  motorRight.run(FORWARD);
+  motorRight.setSpeed(moveSpeed);
+  motorLeft.run(FORWARD);
+  motorLeft.setSpeed(moveSpeed);
+}
+
+void moveBackward()
+{
+  debug_msg.data = "MOVING BACKWARD";
+  Debug.publish(&debug_msg);
+  running = 1;
+  leftHeading = 2;
+  rightHeading = 2;
+  motorLeft.run(BACKWARD);
+  motorLeft.setSpeed(moveSpeed);
+  motorRight.run(BACKWARD);
+  motorRight.setSpeed(moveSpeed);
+}
+
+void turnLeft()
+{
+  debug_msg.data = "TURN LEFT";
+  Debug.publish(&debug_msg);
+  running = 1;
+  leftHeading = 2;
+  rightHeading = 1;
+  motorLeft.run(BACKWARD);
+  motorLeft.setSpeed(turnSpeed);
+  motorRight.run(FORWARD);
+  motorRight.setSpeed(turnSpeed);
+}
+
+void turnRight()
+{
+  debug_msg.data = "TURN RIGHT";
+  Debug.publish(&debug_msg);
+  running = 1;
+  leftHeading = 1;
+  rightHeading = 2;
+  motorLeft.run(FORWARD);
+  motorLeft.setSpeed(turnSpeed);
+  motorRight.run(BACKWARD);
+  motorRight.setSpeed(turnSpeed);
+}
+
+void stopMovement()
+{
+  debug_msg.data = "MOVEMENT STOPPED";
+  Debug.publish(&debug_msg);
+  motorLeft.run(RELEASE);
+  motorRight.run(RELEASE);
+  running = 0;
+  leftHeading = 0;
+  rightHeading = 0;
 }
 
 void LwheelSpeed()
@@ -143,6 +130,7 @@ void RwheelSpeed()
   }
 }
 
+
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
 
 void setup(){
@@ -159,15 +147,36 @@ void setup(){
 }
 
 void loop(){
-  static unsigned long timer = 0;
-  if(runningFor == 0){
-
-  } else {
-    runningFor++;
-  }
+  static unsigned long encTimer = 0;
   nh.spinOnce();
+  
+  if(goalX != currX || goalZ != currZ){
+    currX = goalX;  // later we will slowly ramp curr up towards goal
+    currZ = goalZ;  // and use an accel method to determine speed to set
+    if(currX > 0.1 || currX < -0.1 || currZ > 0.1 || currZ < -0.1){
+      debug_msg.data = "NEW ACTION STARTING";
+      Debug.publish(&debug_msg);
+      if(currX > 0.1){
+        if(forwardBlocked == 0){
+          moveForward();
+        }
+      } else if(currX < -0.1){
+        moveBackward();
+      } else if(currZ > 0.1){
+        turnLeft();
+      } else if(currZ < -0.1){
+        turnRight();
+      }
+    } else {
+      stopMovement();
+    }
+  }
 
-  if(millis() - timer > 100){
+  if(running == 1 && (millis() - lastMssgTime > 250)){
+    stopMovement();
+  } 
+
+  if(millis() - encTimer > 100){
     Serial.print("Coder value: ");
     Serial.print(coder[0]);
     Serial.print("[Left Wheel] ");
@@ -178,7 +187,7 @@ void loop(){
     lastSpeed[1] = coder[1];
     coder[0] = 0;                 //clear the data buffer
     coder[1] = 0;
-    timer = millis();
+    encTimer = millis();
   }  
   delay(1);
 }
