@@ -3,6 +3,22 @@
 #include <std_msgs/String.h>
 #include <geometry_msgs/Twist.h>
 #include <AFMotor.h>
+#include <NewPing.h>
+#include <SharpIR.h>
+
+
+#define irl A6
+#define irc A7
+#define irr A8
+#define model 20150
+#define MAX_DISTANCE 200
+
+NewPing sonar_left(24, 24, MAX_DISTANCE);
+NewPing sonar_right(25, 25, MAX_DISTANCE);
+
+SharpIR ir_left(irl, 25, 93, model);
+SharpIR ir_center(irc, 25, 93, model);
+SharpIR ir_right(irr, 25, 93, model);
 
 ros::NodeHandle  nh;
 AF_DCMotor motorLeft(3); //left wheel
@@ -22,6 +38,8 @@ std_msgs::String debug_msg;
 ros::Publisher Debug ("debug_bot", &debug_msg);
 geometry_msgs::Twist odom_msg;
 ros::Publisher Pub ("ard_odom", &odom_msg);
+geometry_msgs::Twist sensor_msg;
+ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
 int odomInterval = 100;
@@ -151,6 +169,10 @@ void setup(){
   nh.subscribe(sub);
   nh.advertise(Debug);
   nh.advertise(Pub);
+  nh.advertise(Sensorpub);
+  pinMode (irl, INPUT);
+  pinMode (irc, INPUT);
+  pinMode (irr, INPUT);
   attachInterrupt(LEFT, LwheelSpeed, CHANGE);
   attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
   motorLeft.setSpeed(turnSpeed);
@@ -162,6 +184,18 @@ void setup(){
 void loop(){
   static unsigned long encTimer = 0;
   nh.spinOnce();
+  unsigned int sLeft = sonar_left.ping();
+  unsigned int sRight = sonar_right.ping();
+  int dLeft=ir_left.distance();
+  int dCenter=ir_center.distance();
+  int dRight=ir_right.distance();
+
+    sensor_msg.linear.x = dLeft;
+    sensor_msg.linear.y = dCenter;
+    sensor_msg.linear.z = dRight;
+    sensor_msg.angular.x = sLeft;
+    sensor_msg.angular.z = sRight;
+    Sensorpub.publish(&sensor_msg);
   
   if(goalX != currX || goalZ != currZ){
     currX = goalX;  // later we will slowly ramp curr up towards goal
