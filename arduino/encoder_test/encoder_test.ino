@@ -41,6 +41,8 @@ void loop(){
     Serial.print("[Left Wheel] ");
     Serial.print(coder[1]);
     Serial.println("[Right Wheel]");
+    Serial.print("Right ODOM");
+    Serial.println((coder[1]*3.14*6.56)/20); // in cm 
 
     lastSpeed[0] = coder[0];   //record the latest speed value
     lastSpeed[1] = coder[1];

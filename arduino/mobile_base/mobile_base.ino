@@ -20,8 +20,16 @@ int forwardBlocked = 0; //0 unblocked, 1 blocked
 unsigned long lastMssgTime = 0;
 std_msgs::String debug_msg;
 ros::Publisher Debug ("debug_bot", &debug_msg);
+geometry_msgs::Twist odom_msg;
+ros::Publisher Pub ("ard_odom", &odom_msg);
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
+int odomInterval = 100;
+float wheelDiameter = 6.56; // In cm
+int wheelSeparation = 26; // In cm
+int encoderTicks = 20; // Per rotation
+double vel_lx = 0; // odom linear x velocity
+double vel_az = 0; // odom angular z velocity
 
 long coder[2] = {
   0,0};
@@ -94,6 +102,10 @@ void stopMovement()
   motorLeft.run(RELEASE);
   motorRight.run(RELEASE);
   running = 0;
+  currX = 0;
+  currZ = 0;
+  goalX = 0;
+  goalZ = 0;
   leftHeading = 0;
   rightHeading = 0;
 }
@@ -138,6 +150,7 @@ void setup(){
   nh.initNode();
   nh.subscribe(sub);
   nh.advertise(Debug);
+  nh.advertise(Pub);
   attachInterrupt(LEFT, LwheelSpeed, CHANGE);
   attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
   motorLeft.setSpeed(turnSpeed);
@@ -176,18 +189,47 @@ void loop(){
     stopMovement();
   } 
 
-  if(millis() - encTimer > 100){
-    Serial.print("Coder value: ");
-    Serial.print(coder[0]);
-    Serial.print("[Left Wheel] ");
-    Serial.print(coder[1]);
-    Serial.println("[Right Wheel]");
-
+  if(millis() - encTimer > odomInterval){
     lastSpeed[0] = coder[0];   //record the latest speed value
     lastSpeed[1] = coder[1];
+
+    if((leftHeading == 1 && rightHeading == 1) || (leftHeading == 2 && rightHeading == 2)) {
+      // forward or backwards
+      vel_lx = ((((lastSpeed[0] + lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) * (10.0 / odomInterval); // 10 = 1000 second * .01 cm to m
+      vel_az = 0;
+    } else if(leftHeading == 2 && rightHeading == 1) {
+      // left turn
+      vel_lx = 0;
+      vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
+    } else if(leftHeading == 1 && rightHeading == 2) {
+      // right turn
+      vel_lx = 0;
+      vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
+    } else {
+      vel_lx = 0;
+      vel_az = 0;
+    }
+    
+    Serial.print("Odom Linear X: ");
+    Serial.println(vel_lx);
+    Serial.print("Odom Angular Z: ");
+    Serial.println(vel_az);
+
+    odom_msg.linear.x = vel_lx;
+    odom_msg.angular.z = vel_az;
+    Pub.publish(&odom_msg);
+
     coder[0] = 0;                 //clear the data buffer
     coder[1] = 0;
     encTimer = millis();
-  }  
+  }
   delay(1);
 }
+
+// TODO: Move to constants instead of vars where possible
+// TODO: Serious refactor
+// TODO: Pre-compute values so they don't need to be recomputed every time
+// TODO: Think about moving forward and backwards from 0, 1, 2 to 0, 1, -1
+// TODO: Switch time from odomInterval to actual time passed for velocity calculations
+// TODO: Don't report odom when any values are out of range
+
