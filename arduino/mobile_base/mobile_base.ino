@@ -51,9 +51,12 @@ long coder[2] = {
 int lastSpeed[2] = {
   0,0};
 unsigned long range_timer;
-char irl_frameid[] = "/ir_left";
-char irc_frameid[] = "/ir_center";
-char irr_frameid[] = "/ir_right";
+char irl_frameid[] = "/ir_left_depth_frame";
+char irc_frameid[] = "/ir_center_depth_frame";
+char irr_frameid[] = "/ir_right_depth_frame";
+char sl_frameid[] = "/sonar_left_depth_frame";
+char sr_frameid[] = "/sonar_right_depth_frame";
+
 
 ros::NodeHandle  nh;
 std_msgs::String debug_msg;
@@ -63,11 +66,15 @@ ros::Publisher Pub ("ard_odom", &odom_msg);
 geometry_msgs::Twist sensor_msg;
 ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
 sensor_msgs::Range irl_range_msg;
-ros::Publisher irl_pub_range( "ir_left", &irl_range_msg);
+ros::Publisher irl_pub( "ir_left_depth_frame", &irl_range_msg);
 sensor_msgs::Range irc_range_msg;
-ros::Publisher irc_pub_range( "ir_center", &irc_range_msg);
+ros::Publisher irc_pub( "ir_center_depth_frame", &irc_range_msg);
 sensor_msgs::Range irr_range_msg;
-ros::Publisher irr_pub_range( "ir_right", &irr_range_msg);
+ros::Publisher irr_pub( "ir_right_depth_frame", &irr_range_msg);
+sensor_msgs::Range sl_range_msg;
+ros::Publisher sl_pub( "sonar_left_depth_frame", &sl_range_msg);
+sensor_msgs::Range sr_range_msg;
+ros::Publisher sr_pub( "sonar_right_depth_frame", &sr_range_msg);
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
@@ -232,11 +239,11 @@ void debugSensors(int dLeft, int dCenter, int dRight, int sLeft, int sRight)
 
 void checkSensors()
 {
-  unsigned int sLeft = sonar_left.ping();
-  unsigned int sRight = sonar_right.ping();
-  int dLeft=ir_left.distance(); 
-  int dCenter=ir_center.distance();
-  int dRight=ir_right.distance();
+  float sLeft = sonar_left.ping();
+  float sRight = sonar_right.ping();
+  float dLeft=ir_left.distance(); 
+  float dCenter=ir_center.distance();
+  float dRight=ir_right.distance();
 
   if(sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight)){
     forwardBlocked = 1;
@@ -256,15 +263,23 @@ void checkSensors()
   }
 
   if ( (millis()-range_timer) > 50){
-    irl_range_msg.range = dLeft;
+    irl_range_msg.range = dLeft / 100;
     irl_range_msg.header.stamp = nh.now();
-    irl_pub_range.publish(&irl_range_msg);
-    irc_range_msg.range = dCenter;
+    irl_pub.publish(&irl_range_msg);
+    irc_range_msg.range = dCenter / 100;
     irc_range_msg.header.stamp = nh.now();
-    irc_pub_range.publish(&irc_range_msg);   
-    irr_range_msg.range = dRight;
+    irc_pub.publish(&irc_range_msg);   
+    irr_range_msg.range = dRight / 100;
     irr_range_msg.header.stamp = nh.now();
-    irr_pub_range.publish(&irr_range_msg);    
+    irr_pub.publish(&irr_range_msg);
+    sLeft = (sLeft / US_ROUNDTRIP_CM) / 100;
+    sl_range_msg.range = sLeft;
+    sl_range_msg.header.stamp = nh.now();
+    sl_pub.publish(&sl_range_msg);
+    sRight = (sRight / US_ROUNDTRIP_CM) / 100;
+    sr_range_msg.range = sRight;
+    sr_range_msg.header.stamp = nh.now();
+    sr_pub.publish(&sr_range_msg);    
     range_timer =  millis();
   }
   
@@ -387,19 +402,29 @@ void setupSensorMsgs()
 {
   irl_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
   irl_range_msg.header.frame_id =  irl_frameid;
-  irl_range_msg.field_of_view = 1;
-  irl_range_msg.min_range = 0.03;
-  irl_range_msg.max_range = 0.4;
+  irl_range_msg.field_of_view = 0.01;
+  irl_range_msg.min_range = 0.1;
+  irl_range_msg.max_range = 0.8;
   irc_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
   irc_range_msg.header.frame_id =  irc_frameid;
-  irc_range_msg.field_of_view = 1;
-  irc_range_msg.min_range = 0.03;
-  irc_range_msg.max_range = 0.4;
+  irc_range_msg.field_of_view = 0.01;
+  irc_range_msg.min_range = 0.1;
+  irc_range_msg.max_range = 0.8;
   irr_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
   irr_range_msg.header.frame_id =  irr_frameid;
-  irr_range_msg.field_of_view = 1;
-  irr_range_msg.min_range = 0.03;
-  irr_range_msg.max_range = 0.4; 
+  irr_range_msg.field_of_view = 0.01;
+  irr_range_msg.min_range = 0.1;
+  irr_range_msg.max_range = 0.8; 
+  sl_range_msg.radiation_type = sensor_msgs::Range::ULTRASOUND;
+  sl_range_msg.header.frame_id =  sl_frameid;
+  sl_range_msg.field_of_view = 0.7;
+  sl_range_msg.min_range = 0.02;
+  sl_range_msg.max_range = 3; 
+  sr_range_msg.radiation_type = sensor_msgs::Range::ULTRASOUND;
+  sr_range_msg.header.frame_id =  sr_frameid;
+  sr_range_msg.field_of_view = 0.7;
+  sr_range_msg.min_range = 0.02;
+  sr_range_msg.max_range = 3; 
 }
 
 void setupRosTopics()
@@ -409,9 +434,11 @@ void setupRosTopics()
   nh.advertise(Debug);
   nh.advertise(Pub);
   nh.advertise(Sensorpub);
-  nh.advertise(irl_pub_range);
-  nh.advertise(irc_pub_range);
-  nh.advertise(irr_pub_range);  
+  nh.advertise(irl_pub);
+  nh.advertise(irc_pub);
+  nh.advertise(irr_pub);
+  nh.advertise(sl_pub);
+  nh.advertise(sr_pub);  
 }
 
 void setup(){
