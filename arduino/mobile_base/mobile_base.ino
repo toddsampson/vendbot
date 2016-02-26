@@ -6,60 +6,70 @@
 #include <NewPing.h>
 #include <SharpIR.h>
 
-
 #define irl A6
 #define irc A7
 #define irr A8
 #define model 20150
 #define MAX_DISTANCE 200
 #define SONAR_PERSONAL_SPACE 1000
+#define IR_PERSONAL_SPACE 25
+#define LEFT digitalPinToInterrupt(20)
+#define RIGHT digitalPinToInterrupt(21)
 
 NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
-
 SharpIR ir_left(irl, 25, 93, model);
-SharpIR ir_center(irc, 25, 93, model);
+//SharpIR ir_center(irc, 25, 93, model);
 SharpIR ir_right(irr, 25, 93, model);
-
-ros::NodeHandle  nh;
 AF_DCMotor motorLeft(3); //left wheel
 AF_DCMotor motorRight(1); //right wheel
+
 float currX = 0.0;
 float currZ = 0.0;
 float goalX = 0.0;
 float goalZ = 0.0;
 boolean running = false;
 int turnSpeed = 125;
-int moveSpeed = 220;
+int moveSpeed = 180;
+int moveSpeedMax = 225;
+int currSpeed = 0;
 int leftHeading = 0; //1 forward, 2 backward
 int rightHeading = 0; //1 forward, 2 backward
 int forwardBlocked = 0; //0 unblocked, 1 blocked
 unsigned long lastMssgTime = 0;
-std_msgs::String debug_msg;
-ros::Publisher Debug ("debug_bot", &debug_msg);
-geometry_msgs::Twist odom_msg;
-ros::Publisher Pub ("ard_odom", &odom_msg);
-geometry_msgs::Twist sensor_msg;
-ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
-#define LEFT digitalPinToInterrupt(20)
-#define RIGHT digitalPinToInterrupt(21)
 int odomInterval = 100;
 float wheelDiameter = 6.56; // In cm
 int wheelSeparation = 26; // In cm
 int encoderTicks = 20; // Per rotation
 double vel_lx = 0; // odom linear x velocity
 double vel_az = 0; // odom angular z velocity
-
 long coder[2] = {
   0,0};
 int lastSpeed[2] = {
   0,0};  
+
+ros::NodeHandle  nh;
+std_msgs::String debug_msg;
+ros::Publisher Debug ("debug_bot", &debug_msg);
+geometry_msgs::Twist odom_msg;
+ros::Publisher Pub ("ard_odom", &odom_msg);
+geometry_msgs::Twist sensor_msg;
+ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
   goalX = msg.linear.x;
   goalZ = msg.angular.z;
   lastMssgTime = millis();
+}
+
+void nextSpeed(int maxSpeed)
+{
+  if(currSpeed < maxSpeed){
+    currSpeed += 5;
+    motorRight.setSpeed(currSpeed);
+    motorLeft.setSpeed(currSpeed);
+  }
 }
 
 void moveForward()
@@ -69,6 +79,7 @@ void moveForward()
   running = true;
   leftHeading = 1;
   rightHeading = 1;
+  currSpeed = moveSpeed;
   motorRight.run(FORWARD);
   motorRight.setSpeed(moveSpeed);
   motorLeft.run(FORWARD);
@@ -82,6 +93,7 @@ void moveBackward()
   running = true;
   leftHeading = 2;
   rightHeading = 2;
+  currSpeed = moveSpeed;
   motorLeft.run(BACKWARD);
   motorLeft.setSpeed(moveSpeed);
   motorRight.run(BACKWARD);
@@ -125,6 +137,7 @@ void stopMovement()
   currZ = 0;
   goalX = 0;
   goalZ = 0;
+  currSpeed = 0;
   leftHeading = 0;
   rightHeading = 0;
 }
@@ -161,7 +174,7 @@ void RwheelSpeed()
   }
 }
 
-boolean sonarSensorBlocked(int val)
+boolean sonarBlocked(int val)
 {
   if(val > 0 && val < SONAR_PERSONAL_SPACE){
     return true;
@@ -169,15 +182,43 @@ boolean sonarSensorBlocked(int val)
   return false;
 }
 
+boolean irBlocked(int val)
+{
+  if(val > 0 && val < IR_PERSONAL_SPACE){
+    return true;
+  }
+  return false;
+}
+
+boolean sensorBlocked(int sLeft, int sRight, int dLeft, int dCenter, int dRight)
+{
+  if(sonarBlocked(sLeft) || sonarBlocked(sRight) || irBlocked(dLeft) || irBlocked(dCenter) || irBlocked(dRight)){
+    return true;
+  }
+  return false;
+}
+
+void debugSensors(int dLeft, int dCenter, int dRight, int sLeft, int sRight)
+{
+  sensor_msg.linear.x = dLeft;
+  sensor_msg.linear.y = dCenter;
+  sensor_msg.linear.z = dRight;
+  sensor_msg.angular.x = sLeft;
+  sensor_msg.angular.y = forwardBlocked;
+  sensor_msg.angular.z = sRight;
+  Sensorpub.publish(&sensor_msg);
+}
+
 void checkSensors()
 {
   unsigned int sLeft = sonar_left.ping();
   unsigned int sRight = sonar_right.ping();
   int dLeft=ir_left.distance();
-  int dCenter=ir_center.distance();
+  int dCenter = 0;  
+  //int dCenter=ir_center.distance();
   int dRight=ir_right.distance();
 
-  if(sonarSensorBlocked(sLeft) || sonarSensorBlocked(sRight)){
+  if(sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight)){
     forwardBlocked = 1;
     debug_msg.data = "BLOCKING FORWARD MOTION";
     Debug.publish(&debug_msg);
@@ -187,20 +228,14 @@ void checkSensors()
     Debug.publish(&debug_msg); 
   }
 
-  //sensor_msg.linear.x = dLeft;
-  //sensor_msg.linear.y = dCenter;
-  //sensor_msg.linear.z = dRight;
-  //sensor_msg.angular.x = sLeft;
-  //sensor_msg.angular.y = forwardBlocked;
-  //sensor_msg.angular.z = sRight;
-  //Sensorpub.publish(&sensor_msg);
-
-  if(goalX > 0.1 && (sonarSensorBlocked(sLeft) || sonarSensorBlocked(sRight))){
+  if(goalX > 0.1 && (sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight))){
     goalX = 0;
     goalZ = 0;
     debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
     Debug.publish(&debug_msg); 
   }
+  
+  //debugSensors(dLeft, dCenter, dRight, sLeft, sRight);
 }
 
 void controlMotors()
@@ -226,6 +261,10 @@ void controlMotors()
       stopMovement();
     }
   }
+//  if(movingForward() || movingBackward()) {
+//    nextSpeed(moveSpeedMax);
+//    debugSensors(currSpeed, 0, 0, 0, 0);
+//  }
   if(running == true && (millis() - lastMssgTime > 250)){
     stopMovement();
   }  
@@ -263,7 +302,25 @@ boolean turningRight()
   return false;
 }
 
-void writeOdometry()
+void debugOdom(int vel_lx, int vel_az)
+{
+  sensor_msg.linear.x = vel_lx;
+  sensor_msg.linear.y = lastSpeed[0];
+  sensor_msg.linear.z = lastSpeed[1];
+  sensor_msg.angular.x = leftHeading;
+  sensor_msg.angular.y = rightHeading;
+  sensor_msg.angular.z = vel_az;
+  Sensorpub.publish(&sensor_msg);
+}
+
+void publishOdom(int vel_lx, int vel_az)
+{
+  odom_msg.linear.x = vel_lx;
+  odom_msg.angular.z = vel_az;
+  Pub.publish(&odom_msg);
+}
+
+void handleOdometry()
 {
   lastSpeed[0] = coder[0];   //record the latest speed value
   lastSpeed[1] = coder[1];
@@ -285,16 +342,8 @@ void writeOdometry()
     vel_az = 0;
   }
 
-  //sensor_msg.linear.x = vel_lx;
-  //sensor_msg.linear.y = lastSpeed[0];
-  //sensor_msg.linear.z = lastSpeed[1];
-  //sensor_msg.angular.x = leftHeading;
-  //sensor_msg.angular.y = rightHeading;
-  //sensor_msg.angular.z = vel_az;
-  //Sensorpub.publish(&sensor_msg);
-  odom_msg.linear.x = vel_lx;
-  odom_msg.angular.z = vel_az;
-  Pub.publish(&odom_msg);
+  //debugOdom(vel_lx, vel_az);
+  publishOdom(vel_lx, vel_az);
   coder[0] = 0;   //clear the data buffer
   coder[1] = 0;
 }
@@ -309,7 +358,7 @@ void setup(){
   nh.advertise(Pub);
   nh.advertise(Sensorpub);
   pinMode (irl, INPUT);
-  pinMode (irc, INPUT);
+  //pinMode (irc, INPUT);
   pinMode (irr, INPUT);
   attachInterrupt(LEFT, LwheelSpeed, CHANGE);
   attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
@@ -329,7 +378,7 @@ void loop(){
   controlMotors();
   
   if(millis() - encTimer > odomInterval){
-    writeOdometry();
+    handleOdometry();
     encTimer = millis();
   }
   
