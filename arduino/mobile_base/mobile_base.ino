@@ -29,7 +29,7 @@ float goalX = 0.0;
 float goalZ = 0.0;
 int running = 0;
 int turnSpeed = 125;
-int moveSpeed = 195;
+int moveSpeed = 220;
 int leftHeading = 0; //1 forward, 2 backward
 int rightHeading = 0; //1 forward, 2 backward
 int forwardBlocked = 0; //0 unblocked, 1 blocked
@@ -190,12 +190,19 @@ void loop(){
   int dCenter=ir_center.distance();
   int dRight=ir_right.distance();
 
-    sensor_msg.linear.x = dLeft;
-    sensor_msg.linear.y = dCenter;
-    sensor_msg.linear.z = dRight;
-    sensor_msg.angular.x = sLeft;
-    sensor_msg.angular.z = sRight;
-    Sensorpub.publish(&sensor_msg);
+  sensor_msg.linear.x = dLeft;
+  sensor_msg.linear.y = dCenter;
+  sensor_msg.linear.z = dRight;
+  sensor_msg.angular.x = sLeft;
+  sensor_msg.angular.z = sRight;
+  Sensorpub.publish(&sensor_msg);
+
+  if(goalX > 0.1 && ((sLeft > 0 && sLeft < 1000) || (sRight > 0 && sRight < 0))){
+    goalX = 0;
+    goalZ = 0;
+    debug_msg.data = "SHOULD STOP FORWARD MOTION";
+    Debug.publish(&debug_msg); 
+  }
   
   if(goalX != currX || goalZ != currZ){
     currX = goalX;  // later we will slowly ramp curr up towards goal
