@@ -161,6 +161,14 @@ void RwheelSpeed()
   }
 }
 
+boolean sonarSensorBlocked(int val)
+{
+  if(val > 0 && val < SONAR_PERSONAL_SPACE){
+    return true;
+  }
+  return false;
+}
+
 void checkSensors()
 {
   unsigned int sLeft = sonar_left.ping();
@@ -176,7 +184,7 @@ void checkSensors()
   sensor_msg.angular.z = sRight;
   Sensorpub.publish(&sensor_msg);
 
-  if((sLeft > 0 && sLeft < SONAR_PERSONAL_SPACE) || (sRight > 0 && sRight < SONAR_PERSONAL_SPACE)){
+  if(sonarSensorBlocked(sLeft) || sonarSensorBlocked(sRight)){
     forwardBlocked = 1;
     debug_msg.data = "BLOCKING FORWARD MOTION";
     Debug.publish(&debug_msg);
@@ -186,7 +194,7 @@ void checkSensors()
     Debug.publish(&debug_msg); 
   }
 
-  if(goalX > 0.1 && ((sLeft > 0 && sLeft < SONAR_PERSONAL_SPACE) || (sRight > 0 && sRight < SONAR_PERSONAL_SPACE))){
+  if(goalX > 0.1 && (sonarSensorBlocked(sLeft) || sonarSensorBlocked(sRight))){
     goalX = 0;
     goalZ = 0;
     debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
@@ -220,6 +228,22 @@ void controlMotors()
   if(running == true && (millis() - lastMssgTime > 250)){
     stopMovement();
   }  
+}
+
+boolean movingForward()
+{
+  if(leftHeading == 1 && rightHeading == 1){
+    return true;
+  }
+  return false;
+}
+
+boolean movingBackward()
+{
+  if(leftHeading == 2 && rightHeading == 2){
+    return true;
+  }
+  return false;
 }
 
 void writeOdometry()
