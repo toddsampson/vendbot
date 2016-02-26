@@ -134,7 +134,7 @@
   <xacro:sensor_depth_frame sensor="ir" pos="center" />
   <xacro:sensor_depth_frame sensor="ir" pos="right" />
   <xacro:macro name="sensor_depth_frame_joint" params="sensor pos">
-    <joint name="sensor_depth_joint" type="fixed">
+    <joint name="${sensor}_${pos}_depth_joint" type="fixed">
       <origin xyz="0 0.015 0" rpy="0 0 0" />
       <parent link="${sensor}_${pos}" />
       <child link="${sensor}_${pos}_depth_frame" />
