@@ -118,19 +118,19 @@
       </geometry>
     </visual>
   </link>
-  <joint name="sonar_left_joint" type="fixed">
-    <parent link="platform"/>
-    <child link="sonar_left"/>
-    <origin rpy="0 0 -0.35" xyz="0.0936 -0.0635 0.005"/>
-  </joint>
   <joint name="sonar_right_joint" type="fixed">
     <parent link="platform"/>
     <child link="sonar_right"/>
+    <origin rpy="0 0 -0.35" xyz="0.0936 -0.0635 0.005"/>
+  </joint>
+  <joint name="sonar_left_joint" type="fixed">
+    <parent link="platform"/>
+    <child link="sonar_left"/>
     <origin rpy="0 0 0.35" xyz="0.0936 0.0635 0.005"/>
   </joint>
-  <joint name="ir_left_joint" type="fixed">
+  <joint name="ir_right_joint" type="fixed">
     <parent link="platform"/>
-    <child link="ir_left"/>
+    <child link="ir_right"/>
     <origin rpy="0 0 -0.7" xyz="0.0766 -0.125 0.005"/>
   </joint>
   <joint name="ir_center_joint" type="fixed">
@@ -138,9 +138,9 @@
     <child link="ir_center"/>
     <origin rpy="0 0 0" xyz="0.1023 0 0.005"/>
   </joint>
-  <joint name="ir_right_joint" type="fixed">
+  <joint name="ir_left_joint" type="fixed">
     <parent link="platform"/>
-    <child link="ir_right"/>
+    <child link="ir_left"/>
     <origin rpy="0 0 0.7" xyz="0.0766 0.125 0.005"/>
   </joint>
   <link name="sonar_left_depth_frame">

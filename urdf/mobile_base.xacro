@@ -114,11 +114,11 @@
       <origin rpy="${rpy}" xyz="${xyz}" />
     </joint>
   </xacro:macro>
-  <xacro:sensor_joint sensor="sonar" pos="left" rpy="0 0 -0.35" xyz="${(platform_l / 2) - 0.008} -0.0635 ${sensor_height}" />
-  <xacro:sensor_joint sensor="sonar" pos="right" rpy="0 0 0.35" xyz="${(platform_l / 2) - 0.008} 0.0635 ${sensor_height}" />
-  <xacro:sensor_joint sensor="ir" pos="left" rpy="0 0 -0.7" xyz="${(platform_l / 2) - 0.025} -0.125 ${sensor_height}" />
+  <xacro:sensor_joint sensor="sonar" pos="left" rpy="0 0 0.35" xyz="${(platform_l / 2) - 0.008} 0.0635 ${sensor_height}" />
+  <xacro:sensor_joint sensor="sonar" pos="right" rpy="0 0 -0.35" xyz="${(platform_l / 2) - 0.008} -0.0635 ${sensor_height}" />
+  <xacro:sensor_joint sensor="ir" pos="left" rpy="0 0 0.7" xyz="${(platform_l / 2) - 0.025} 0.125 ${sensor_height}" />
   <xacro:sensor_joint sensor="ir" pos="center" rpy="0 0 0" xyz="${(platform_l / 2) + 0.0007} 0 ${sensor_height}" />
-  <xacro:sensor_joint sensor="ir" pos="right" rpy="0 0 0.7" xyz="${(platform_l / 2) - 0.025} 0.125 ${sensor_height}" />
+  <xacro:sensor_joint sensor="ir" pos="right" rpy="0 0 -0.7" xyz="${(platform_l / 2) - 0.025} -0.125 ${sensor_height}" />
   <xacro:macro name="sensor_depth_frame" params="sensor pos">
     <link name="${sensor}_${pos}_depth_frame">
       <inertial>
