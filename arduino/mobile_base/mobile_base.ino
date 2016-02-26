@@ -177,13 +177,6 @@ void checkSensors()
   int dCenter=ir_center.distance();
   int dRight=ir_right.distance();
 
-  sensor_msg.linear.x = dLeft;
-  sensor_msg.linear.y = dCenter;
-  sensor_msg.linear.z = dRight;
-  sensor_msg.angular.x = sLeft;
-  sensor_msg.angular.z = sRight;
-  Sensorpub.publish(&sensor_msg);
-
   if(sonarSensorBlocked(sLeft) || sonarSensorBlocked(sRight)){
     forwardBlocked = 1;
     debug_msg.data = "BLOCKING FORWARD MOTION";
@@ -193,6 +186,14 @@ void checkSensors()
     debug_msg.data = "FORWARD MOTION UNBLOCKED";
     Debug.publish(&debug_msg); 
   }
+
+  //sensor_msg.linear.x = dLeft;
+  //sensor_msg.linear.y = dCenter;
+  //sensor_msg.linear.z = dRight;
+  //sensor_msg.angular.x = sLeft;
+  //sensor_msg.angular.y = forwardBlocked;
+  //sensor_msg.angular.z = sRight;
+  //Sensorpub.publish(&sensor_msg);
 
   if(goalX > 0.1 && (sonarSensorBlocked(sLeft) || sonarSensorBlocked(sRight))){
     goalX = 0;
@@ -246,40 +247,56 @@ boolean movingBackward()
   return false;
 }
 
+boolean turningLeft()
+{
+  if(leftHeading == 2 && rightHeading == 1){
+    return true;
+  }
+  return false;
+}
+
+boolean turningRight()
+{
+  if(leftHeading == 1 && rightHeading == 2){
+    return true;
+  }
+  return false;
+}
+
 void writeOdometry()
 {
-  
-    lastSpeed[0] = coder[0];   //record the latest speed value
-    lastSpeed[1] = coder[1];
+  lastSpeed[0] = coder[0];   //record the latest speed value
+  lastSpeed[1] = coder[1];
 
-    if((leftHeading == 1 && rightHeading == 1) || (leftHeading == 2 && rightHeading == 2)) {
-      // forward or backwards
-      vel_lx = ((((lastSpeed[0] + lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) * (10.0 / odomInterval); // 10 = 1000 second * .01 cm to m
-      vel_az = 0;
-    } else if(leftHeading == 2 && rightHeading == 1) {
-      // left turn
-      vel_lx = 0;
-      vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
-    } else if(leftHeading == 1 && rightHeading == 2) {
-      // right turn
-      vel_lx = 0;
-      vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
-    } else {
-      vel_lx = 0;
-      vel_az = 0;
-    }
-    
-    Serial.print("Odom Linear X: ");
-    Serial.println(vel_lx);
-    Serial.print("Odom Angular Z: ");
-    Serial.println(vel_az);
+  if(movingForward() || movingBackward()) {
+    // forward or backwards
+    vel_lx = ((((lastSpeed[0] + lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) * (10.0 / odomInterval); // 10 = 1000 second * .01 cm to m
+    vel_az = 0;
+  } else if(turningLeft()) {
+    // left turn
+    vel_lx = 0;
+    vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
+  } else if(turningRight()) {
+    // right turn
+    vel_lx = 0;
+    vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
+  } else {
+    vel_lx = 0;
+    vel_az = 0;
+  }
 
-    odom_msg.linear.x = vel_lx;
-    odom_msg.angular.z = vel_az;
-    Pub.publish(&odom_msg);
-
-    coder[0] = 0;                 //clear the data buffer
-    coder[1] = 0;
+  //sensor_msg.linear.x = vel_lx;
+  //sensor_msg.linear.y = lastSpeed[0];
+  //sensor_msg.linear.z = lastSpeed[1];
+  //sensor_msg.angular.x = leftHeading;
+  //sensor_msg.angular.y = rightHeading;
+  //sensor_msg.angular.z = vel_az;
+  //Sensorpub.publish(&sensor_msg);
+  odom_msg.linear.x = vel_lx;
+  odom_msg.angular.z = vel_az;
+  Pub.publish(&odom_msg);
+  coder[0] = 0;   //clear the data buffer
+  coder[1] = 0;
 }
 
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
