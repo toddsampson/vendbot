@@ -28,7 +28,7 @@ float currX = 0.0;
 float currZ = 0.0;
 float goalX = 0.0;
 float goalZ = 0.0;
-int running = 0;
+boolean running = false;
 int turnSpeed = 125;
 int moveSpeed = 220;
 int leftHeading = 0; //1 forward, 2 backward
@@ -66,7 +66,7 @@ void moveForward()
 {
   debug_msg.data = "MOVING FORWARD";
   Debug.publish(&debug_msg);
-  running = 1;
+  running = true;
   leftHeading = 1;
   rightHeading = 1;
   motorRight.run(FORWARD);
@@ -79,7 +79,7 @@ void moveBackward()
 {
   debug_msg.data = "MOVING BACKWARD";
   Debug.publish(&debug_msg);
-  running = 1;
+  running = true;
   leftHeading = 2;
   rightHeading = 2;
   motorLeft.run(BACKWARD);
@@ -92,7 +92,7 @@ void turnLeft()
 {
   debug_msg.data = "TURN LEFT";
   Debug.publish(&debug_msg);
-  running = 1;
+  running = true;
   leftHeading = 2;
   rightHeading = 1;
   motorLeft.run(BACKWARD);
@@ -105,7 +105,7 @@ void turnRight()
 {
   debug_msg.data = "TURN RIGHT";
   Debug.publish(&debug_msg);
-  running = 1;
+  running = true;
   leftHeading = 1;
   rightHeading = 2;
   motorLeft.run(FORWARD);
@@ -120,7 +120,7 @@ void stopMovement()
   Debug.publish(&debug_msg);
   motorLeft.run(RELEASE);
   motorRight.run(RELEASE);
-  running = 0;
+  running = false;
   currX = 0;
   currZ = 0;
   goalX = 0;
@@ -217,6 +217,9 @@ void controlMotors()
       stopMovement();
     }
   }
+  if(running == true && (millis() - lastMssgTime > 250)){
+    stopMovement();
+  }  
 }
 
 void writeOdometry()
@@ -283,10 +286,6 @@ void loop(){
   checkSensors();
   
   controlMotors();
-
-  if(running == 1 && (millis() - lastMssgTime > 250)){
-    stopMovement();
-  }
   
   if(millis() - encTimer > odomInterval){
     writeOdometry();
