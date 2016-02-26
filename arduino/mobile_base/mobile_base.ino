@@ -1,7 +1,9 @@
 #include <Arduino.h>
 #include <ros.h>
+#include <ros/time.h>
 #include <std_msgs/String.h>
 #include <geometry_msgs/Twist.h>
+#include <sensor_msgs/Range.h>
 #include <AFMotor.h>
 #include <NewPing.h>
 #include <SharpIR.h>
@@ -12,14 +14,15 @@
 #define model 20150
 #define MAX_DISTANCE 200
 #define SONAR_PERSONAL_SPACE 1000
-#define IR_PERSONAL_SPACE 25
+#define IR_CENTER_PERSONAL_SPACE 35
+#define IR_SIDE_PERSONAL_SPACE 25
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
 
 NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
 SharpIR ir_left(irl, 25, 93, model);
-//SharpIR ir_center(irc, 25, 93, model);
+SharpIR ir_center(irc, 25, 93, model);
 SharpIR ir_right(irr, 25, 93, model);
 AF_DCMotor motorLeft(3); //left wheel
 AF_DCMotor motorRight(1); //right wheel
@@ -46,7 +49,11 @@ double vel_az = 0; // odom angular z velocity
 long coder[2] = {
   0,0};
 int lastSpeed[2] = {
-  0,0};  
+  0,0};
+unsigned long range_timer;
+char irl_frameid[] = "/ir_left";
+char irc_frameid[] = "/ir_center";
+char irr_frameid[] = "/ir_right";
 
 ros::NodeHandle  nh;
 std_msgs::String debug_msg;
@@ -55,6 +62,12 @@ geometry_msgs::Twist odom_msg;
 ros::Publisher Pub ("ard_odom", &odom_msg);
 geometry_msgs::Twist sensor_msg;
 ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
+sensor_msgs::Range irl_range_msg;
+ros::Publisher irl_pub_range( "ir_left", &irl_range_msg);
+sensor_msgs::Range irc_range_msg;
+ros::Publisher irc_pub_range( "ir_center", &irc_range_msg);
+sensor_msgs::Range irr_range_msg;
+ros::Publisher irr_pub_range( "ir_right", &irr_range_msg);
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
@@ -182,9 +195,17 @@ boolean sonarBlocked(int val)
   return false;
 }
 
-boolean irBlocked(int val)
+boolean irSideBlocked(int val)
 {
-  if(val > 0 && val < IR_PERSONAL_SPACE){
+  if(val > 0 && val < IR_SIDE_PERSONAL_SPACE){
+    return true;
+  }
+  return false;
+}
+
+boolean irCenterBlocked(int val)
+{
+  if(val > 0 && val < IR_CENTER_PERSONAL_SPACE){
     return true;
   }
   return false;
@@ -192,7 +213,7 @@ boolean irBlocked(int val)
 
 boolean sensorBlocked(int sLeft, int sRight, int dLeft, int dCenter, int dRight)
 {
-  if(sonarBlocked(sLeft) || sonarBlocked(sRight) || irBlocked(dLeft) || irBlocked(dCenter) || irBlocked(dRight)){
+  if(sonarBlocked(sLeft) || sonarBlocked(sRight) || irSideBlocked(dLeft) || irCenterBlocked(dCenter) || irSideBlocked(dRight)){
     return true;
   }
   return false;
@@ -213,9 +234,8 @@ void checkSensors()
 {
   unsigned int sLeft = sonar_left.ping();
   unsigned int sRight = sonar_right.ping();
-  int dLeft=ir_left.distance();
-  int dCenter = 0;  
-  //int dCenter=ir_center.distance();
+  int dLeft=ir_left.distance(); 
+  int dCenter=ir_center.distance();
   int dRight=ir_right.distance();
 
   if(sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight)){
@@ -233,6 +253,19 @@ void checkSensors()
     goalZ = 0;
     debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
     Debug.publish(&debug_msg); 
+  }
+
+  if ( (millis()-range_timer) > 50){
+    irl_range_msg.range = dLeft;
+    irl_range_msg.header.stamp = nh.now();
+    irl_pub_range.publish(&irl_range_msg);
+    irc_range_msg.range = dCenter;
+    irc_range_msg.header.stamp = nh.now();
+    irc_pub_range.publish(&irc_range_msg);   
+    irr_range_msg.range = dRight;
+    irr_range_msg.header.stamp = nh.now();
+    irr_pub_range.publish(&irr_range_msg);    
+    range_timer =  millis();
   }
   
   //debugSensors(dLeft, dCenter, dRight, sLeft, sRight);
@@ -350,13 +383,40 @@ void handleOdometry()
 
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
 
-void setup(){
-  Serial.begin(57600);
+void setupSensorMsgs()
+{
+  irl_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
+  irl_range_msg.header.frame_id =  irl_frameid;
+  irl_range_msg.field_of_view = 1;
+  irl_range_msg.min_range = 0.03;
+  irl_range_msg.max_range = 0.4;
+  irc_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
+  irc_range_msg.header.frame_id =  irc_frameid;
+  irc_range_msg.field_of_view = 1;
+  irc_range_msg.min_range = 0.03;
+  irc_range_msg.max_range = 0.4;
+  irr_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
+  irr_range_msg.header.frame_id =  irr_frameid;
+  irr_range_msg.field_of_view = 1;
+  irr_range_msg.min_range = 0.03;
+  irr_range_msg.max_range = 0.4; 
+}
+
+void setupRosTopics()
+{
   nh.initNode();
   nh.subscribe(sub);
   nh.advertise(Debug);
   nh.advertise(Pub);
   nh.advertise(Sensorpub);
+  nh.advertise(irl_pub_range);
+  nh.advertise(irc_pub_range);
+  nh.advertise(irr_pub_range);  
+}
+
+void setup(){
+  Serial.begin(57600);
+  setupRosTopics();
   pinMode (irl, INPUT);
   //pinMode (irc, INPUT);
   pinMode (irr, INPUT);
@@ -366,6 +426,7 @@ void setup(){
   motorLeft.run(RELEASE);
   motorRight.setSpeed(turnSpeed);
   motorRight.run(RELEASE);
+  setupSensorMsgs();
 }
 
 void loop(){
