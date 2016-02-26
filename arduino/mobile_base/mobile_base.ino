@@ -1,11 +1,12 @@
 #include <Arduino.h>
 #include <ros.h>
+#include <ros/time.h>
 #include <std_msgs/String.h>
 #include <geometry_msgs/Twist.h>
+#include <sensor_msgs/Range.h>
 #include <AFMotor.h>
 #include <NewPing.h>
 #include <SharpIR.h>
-
 
 #define irl A6
 #define irc A7
@@ -13,53 +14,82 @@
 #define model 20150
 #define MAX_DISTANCE 200
 #define SONAR_PERSONAL_SPACE 1000
+#define IR_CENTER_PERSONAL_SPACE 35
+#define IR_SIDE_PERSONAL_SPACE 25
+#define LEFT digitalPinToInterrupt(20)
+#define RIGHT digitalPinToInterrupt(21)
 
 NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
-
 SharpIR ir_left(irl, 25, 93, model);
 SharpIR ir_center(irc, 25, 93, model);
 SharpIR ir_right(irr, 25, 93, model);
-
-ros::NodeHandle  nh;
 AF_DCMotor motorLeft(3); //left wheel
 AF_DCMotor motorRight(1); //right wheel
+
 float currX = 0.0;
 float currZ = 0.0;
 float goalX = 0.0;
 float goalZ = 0.0;
 boolean running = false;
 int turnSpeed = 125;
-int moveSpeed = 220;
+int moveSpeed = 180;
+int moveSpeedMax = 225;
+int currSpeed = 0;
 int leftHeading = 0; //1 forward, 2 backward
 int rightHeading = 0; //1 forward, 2 backward
 int forwardBlocked = 0; //0 unblocked, 1 blocked
 unsigned long lastMssgTime = 0;
-std_msgs::String debug_msg;
-ros::Publisher Debug ("debug_bot", &debug_msg);
-geometry_msgs::Twist odom_msg;
-ros::Publisher Pub ("ard_odom", &odom_msg);
-geometry_msgs::Twist sensor_msg;
-ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
-#define LEFT digitalPinToInterrupt(20)
-#define RIGHT digitalPinToInterrupt(21)
 int odomInterval = 100;
 float wheelDiameter = 6.56; // In cm
 int wheelSeparation = 26; // In cm
 int encoderTicks = 20; // Per rotation
 double vel_lx = 0; // odom linear x velocity
 double vel_az = 0; // odom angular z velocity
-
 long coder[2] = {
   0,0};
 int lastSpeed[2] = {
-  0,0};  
+  0,0};
+unsigned long range_timer;
+char irl_frameid[] = "/ir_left_depth_frame";
+char irc_frameid[] = "/ir_center_depth_frame";
+char irr_frameid[] = "/ir_right_depth_frame";
+char sl_frameid[] = "/sonar_left_depth_frame";
+char sr_frameid[] = "/sonar_right_depth_frame";
+
+
+ros::NodeHandle  nh;
+std_msgs::String debug_msg;
+ros::Publisher Debug ("debug_bot", &debug_msg);
+geometry_msgs::Twist odom_msg;
+ros::Publisher Pub ("ard_odom", &odom_msg);
+geometry_msgs::Twist sensor_msg;
+ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
+sensor_msgs::Range irl_range_msg;
+ros::Publisher irl_pub( "ir_left_depth_frame", &irl_range_msg);
+sensor_msgs::Range irc_range_msg;
+ros::Publisher irc_pub( "ir_center_depth_frame", &irc_range_msg);
+sensor_msgs::Range irr_range_msg;
+ros::Publisher irr_pub( "ir_right_depth_frame", &irr_range_msg);
+sensor_msgs::Range sl_range_msg;
+ros::Publisher sl_pub( "sonar_left_depth_frame", &sl_range_msg);
+sensor_msgs::Range sr_range_msg;
+ros::Publisher sr_pub( "sonar_right_depth_frame", &sr_range_msg);
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
   goalX = msg.linear.x;
   goalZ = msg.angular.z;
   lastMssgTime = millis();
+}
+
+void nextSpeed(int maxSpeed)
+{
+  if(currSpeed < maxSpeed){
+    currSpeed += 5;
+    motorRight.setSpeed(currSpeed);
+    motorLeft.setSpeed(currSpeed);
+  }
 }
 
 void moveForward()
@@ -69,6 +99,7 @@ void moveForward()
   running = true;
   leftHeading = 1;
   rightHeading = 1;
+  currSpeed = moveSpeed;
   motorRight.run(FORWARD);
   motorRight.setSpeed(moveSpeed);
   motorLeft.run(FORWARD);
@@ -82,6 +113,7 @@ void moveBackward()
   running = true;
   leftHeading = 2;
   rightHeading = 2;
+  currSpeed = moveSpeed;
   motorLeft.run(BACKWARD);
   motorLeft.setSpeed(moveSpeed);
   motorRight.run(BACKWARD);
@@ -125,6 +157,7 @@ void stopMovement()
   currZ = 0;
   goalX = 0;
   goalZ = 0;
+  currSpeed = 0;
   leftHeading = 0;
   rightHeading = 0;
 }
@@ -161,22 +194,58 @@ void RwheelSpeed()
   }
 }
 
-void checkSensors()
+boolean sonarBlocked(int val)
 {
-  unsigned int sLeft = sonar_left.ping();
-  unsigned int sRight = sonar_right.ping();
-  int dLeft=ir_left.distance();
-  int dCenter=ir_center.distance();
-  int dRight=ir_right.distance();
+  if(val > 0 && val < SONAR_PERSONAL_SPACE){
+    return true;
+  }
+  return false;
+}
 
+boolean irSideBlocked(int val)
+{
+  if(val > 0 && val < IR_SIDE_PERSONAL_SPACE){
+    return true;
+  }
+  return false;
+}
+
+boolean irCenterBlocked(int val)
+{
+  if(val > 0 && val < IR_CENTER_PERSONAL_SPACE){
+    return true;
+  }
+  return false;
+}
+
+boolean sensorBlocked(int sLeft, int sRight, int dLeft, int dCenter, int dRight)
+{
+  if(sonarBlocked(sLeft) || sonarBlocked(sRight) || irSideBlocked(dLeft) || irCenterBlocked(dCenter) || irSideBlocked(dRight)){
+    return true;
+  }
+  return false;
+}
+
+void debugSensors(int dLeft, int dCenter, int dRight, int sLeft, int sRight)
+{
   sensor_msg.linear.x = dLeft;
   sensor_msg.linear.y = dCenter;
   sensor_msg.linear.z = dRight;
   sensor_msg.angular.x = sLeft;
+  sensor_msg.angular.y = forwardBlocked;
   sensor_msg.angular.z = sRight;
   Sensorpub.publish(&sensor_msg);
+}
 
-  if((sLeft > 0 && sLeft < SONAR_PERSONAL_SPACE) || (sRight > 0 && sRight < SONAR_PERSONAL_SPACE)){
+void checkSensors()
+{
+  float sLeft = sonar_left.ping();
+  float sRight = sonar_right.ping();
+  float dLeft=ir_left.distance(); 
+  float dCenter=ir_center.distance();
+  float dRight=ir_right.distance();
+
+  if(sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight)){
     forwardBlocked = 1;
     debug_msg.data = "BLOCKING FORWARD MOTION";
     Debug.publish(&debug_msg);
@@ -186,12 +255,35 @@ void checkSensors()
     Debug.publish(&debug_msg); 
   }
 
-  if(goalX > 0.1 && ((sLeft > 0 && sLeft < SONAR_PERSONAL_SPACE) || (sRight > 0 && sRight < SONAR_PERSONAL_SPACE))){
+  if(goalX > 0.1 && (sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight))){
     goalX = 0;
     goalZ = 0;
     debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
     Debug.publish(&debug_msg); 
   }
+
+  if ( (millis()-range_timer) > 50){
+    irl_range_msg.range = dLeft / 100;
+    irl_range_msg.header.stamp = nh.now();
+    irl_pub.publish(&irl_range_msg);
+    irc_range_msg.range = dCenter / 100;
+    irc_range_msg.header.stamp = nh.now();
+    irc_pub.publish(&irc_range_msg);   
+    irr_range_msg.range = dRight / 100;
+    irr_range_msg.header.stamp = nh.now();
+    irr_pub.publish(&irr_range_msg);
+    sLeft = (sLeft / US_ROUNDTRIP_CM) / 100;
+    sl_range_msg.range = sLeft;
+    sl_range_msg.header.stamp = nh.now();
+    sl_pub.publish(&sl_range_msg);
+    sRight = (sRight / US_ROUNDTRIP_CM) / 100;
+    sr_range_msg.range = sRight;
+    sr_range_msg.header.stamp = nh.now();
+    sr_pub.publish(&sr_range_msg);    
+    range_timer =  millis();
+  }
+  
+  //debugSensors(dLeft, dCenter, dRight, sLeft, sRight);
 }
 
 void controlMotors()
@@ -217,58 +309,143 @@ void controlMotors()
       stopMovement();
     }
   }
+//  if(movingForward() || movingBackward()) {
+//    nextSpeed(moveSpeedMax);
+//    debugSensors(currSpeed, 0, 0, 0, 0);
+//  }
   if(running == true && (millis() - lastMssgTime > 250)){
     stopMovement();
   }  
 }
 
-void writeOdometry()
+boolean movingForward()
 {
-  
-    lastSpeed[0] = coder[0];   //record the latest speed value
-    lastSpeed[1] = coder[1];
+  if(leftHeading == 1 && rightHeading == 1){
+    return true;
+  }
+  return false;
+}
 
-    if((leftHeading == 1 && rightHeading == 1) || (leftHeading == 2 && rightHeading == 2)) {
-      // forward or backwards
-      vel_lx = ((((lastSpeed[0] + lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) * (10.0 / odomInterval); // 10 = 1000 second * .01 cm to m
-      vel_az = 0;
-    } else if(leftHeading == 2 && rightHeading == 1) {
-      // left turn
-      vel_lx = 0;
-      vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
-    } else if(leftHeading == 1 && rightHeading == 2) {
-      // right turn
-      vel_lx = 0;
-      vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
-    } else {
-      vel_lx = 0;
-      vel_az = 0;
-    }
-    
-    Serial.print("Odom Linear X: ");
-    Serial.println(vel_lx);
-    Serial.print("Odom Angular Z: ");
-    Serial.println(vel_az);
+boolean movingBackward()
+{
+  if(leftHeading == 2 && rightHeading == 2){
+    return true;
+  }
+  return false;
+}
 
-    odom_msg.linear.x = vel_lx;
-    odom_msg.angular.z = vel_az;
-    Pub.publish(&odom_msg);
+boolean turningLeft()
+{
+  if(leftHeading == 2 && rightHeading == 1){
+    return true;
+  }
+  return false;
+}
 
-    coder[0] = 0;                 //clear the data buffer
-    coder[1] = 0;
+boolean turningRight()
+{
+  if(leftHeading == 1 && rightHeading == 2){
+    return true;
+  }
+  return false;
+}
+
+void debugOdom(int vel_lx, int vel_az)
+{
+  sensor_msg.linear.x = vel_lx;
+  sensor_msg.linear.y = lastSpeed[0];
+  sensor_msg.linear.z = lastSpeed[1];
+  sensor_msg.angular.x = leftHeading;
+  sensor_msg.angular.y = rightHeading;
+  sensor_msg.angular.z = vel_az;
+  Sensorpub.publish(&sensor_msg);
+}
+
+void publishOdom(int vel_lx, int vel_az)
+{
+  odom_msg.linear.x = vel_lx;
+  odom_msg.angular.z = vel_az;
+  Pub.publish(&odom_msg);
+}
+
+void handleOdometry()
+{
+  lastSpeed[0] = coder[0];   //record the latest speed value
+  lastSpeed[1] = coder[1];
+
+  if(movingForward() || movingBackward()) {
+    // forward or backwards
+    vel_lx = ((((lastSpeed[0] + lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) * (10.0 / odomInterval); // 10 = 1000 second * .01 cm to m
+    vel_az = 0;
+  } else if(turningLeft()) {
+    // left turn
+    vel_lx = 0;
+    vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
+  } else if(turningRight()) {
+    // right turn
+    vel_lx = 0;
+    vel_az = ((((((lastSpeed[0] - lastSpeed[1]) / 2.0) * 3.14 * wheelDiameter) / encoderTicks) / (wheelSeparation / 2.0)) * (1000.0 / odomInterval));
+  } else {
+    vel_lx = 0;
+    vel_az = 0;
+  }
+
+  //debugOdom(vel_lx, vel_az);
+  publishOdom(vel_lx, vel_az);
+  coder[0] = 0;   //clear the data buffer
+  coder[1] = 0;
 }
 
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
 
-void setup(){
-  Serial.begin(57600);
+void setupSensorMsgs()
+{
+  irl_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
+  irl_range_msg.header.frame_id =  irl_frameid;
+  irl_range_msg.field_of_view = 0.01;
+  irl_range_msg.min_range = 0.1;
+  irl_range_msg.max_range = 0.8;
+  irc_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
+  irc_range_msg.header.frame_id =  irc_frameid;
+  irc_range_msg.field_of_view = 0.01;
+  irc_range_msg.min_range = 0.1;
+  irc_range_msg.max_range = 0.8;
+  irr_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
+  irr_range_msg.header.frame_id =  irr_frameid;
+  irr_range_msg.field_of_view = 0.01;
+  irr_range_msg.min_range = 0.1;
+  irr_range_msg.max_range = 0.8; 
+  sl_range_msg.radiation_type = sensor_msgs::Range::ULTRASOUND;
+  sl_range_msg.header.frame_id =  sl_frameid;
+  sl_range_msg.field_of_view = 0.7;
+  sl_range_msg.min_range = 0.02;
+  sl_range_msg.max_range = 3; 
+  sr_range_msg.radiation_type = sensor_msgs::Range::ULTRASOUND;
+  sr_range_msg.header.frame_id =  sr_frameid;
+  sr_range_msg.field_of_view = 0.7;
+  sr_range_msg.min_range = 0.02;
+  sr_range_msg.max_range = 3; 
+}
+
+void setupRosTopics()
+{
   nh.initNode();
   nh.subscribe(sub);
   nh.advertise(Debug);
   nh.advertise(Pub);
   nh.advertise(Sensorpub);
+  nh.advertise(irl_pub);
+  nh.advertise(irc_pub);
+  nh.advertise(irr_pub);
+  nh.advertise(sl_pub);
+  nh.advertise(sr_pub);  
+}
+
+void setup(){
+  Serial.begin(57600);
+  setupRosTopics();
   pinMode (irl, INPUT);
-  pinMode (irc, INPUT);
+  //pinMode (irc, INPUT);
   pinMode (irr, INPUT);
   attachInterrupt(LEFT, LwheelSpeed, CHANGE);
   attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
@@ -276,6 +453,7 @@ void setup(){
   motorLeft.run(RELEASE);
   motorRight.setSpeed(turnSpeed);
   motorRight.run(RELEASE);
+  setupSensorMsgs();
 }
 
 void loop(){
@@ -288,7 +466,7 @@ void loop(){
   controlMotors();
   
   if(millis() - encTimer > odomInterval){
-    writeOdometry();
+    handleOdometry();
     encTimer = millis();
   }
   
