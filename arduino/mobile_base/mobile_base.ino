@@ -12,6 +12,7 @@
 #define irr A8
 #define model 20150
 #define MAX_DISTANCE 200
+#define SONAR_PERSONAL_SPACE 1000
 
 NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
@@ -160,30 +161,8 @@ void RwheelSpeed()
   }
 }
 
-
-ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
-
-void setup(){
-  Serial.begin(57600);
-  nh.initNode();
-  nh.subscribe(sub);
-  nh.advertise(Debug);
-  nh.advertise(Pub);
-  nh.advertise(Sensorpub);
-  pinMode (irl, INPUT);
-  pinMode (irc, INPUT);
-  pinMode (irr, INPUT);
-  attachInterrupt(LEFT, LwheelSpeed, CHANGE);
-  attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
-  motorLeft.setSpeed(turnSpeed);
-  motorLeft.run(RELEASE);
-  motorRight.setSpeed(turnSpeed);
-  motorRight.run(RELEASE);
-}
-
-void loop(){
-  static unsigned long encTimer = 0;
-  nh.spinOnce();
+void checkSensors()
+{
   unsigned int sLeft = sonar_left.ping();
   unsigned int sRight = sonar_right.ping();
   int dLeft=ir_left.distance();
@@ -197,13 +176,26 @@ void loop(){
   sensor_msg.angular.z = sRight;
   Sensorpub.publish(&sensor_msg);
 
-  if(goalX > 0.1 && ((sLeft > 0 && sLeft < 1000) || (sRight > 0 && sRight < 0))){
-    goalX = 0;
-    goalZ = 0;
-    debug_msg.data = "SHOULD STOP FORWARD MOTION";
+  if((sLeft > 0 && sLeft < SONAR_PERSONAL_SPACE) || (sRight > 0 && sRight < SONAR_PERSONAL_SPACE)){
+    forwardBlocked = 1;
+    debug_msg.data = "BLOCKING FORWARD MOTION";
+    Debug.publish(&debug_msg);
+  } else {
+    forwardBlocked = 0;
+    debug_msg.data = "FORWARD MOTION UNBLOCKED";
     Debug.publish(&debug_msg); 
   }
-  
+
+  if(goalX > 0.1 && ((sLeft > 0 && sLeft < SONAR_PERSONAL_SPACE) || (sRight > 0 && sRight < SONAR_PERSONAL_SPACE))){
+    goalX = 0;
+    goalZ = 0;
+    debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
+    Debug.publish(&debug_msg); 
+  }
+}
+
+void controlMotors()
+{
   if(goalX != currX || goalZ != currZ){
     currX = goalX;  // later we will slowly ramp curr up towards goal
     currZ = goalZ;  // and use an accel method to determine speed to set
@@ -225,12 +217,11 @@ void loop(){
       stopMovement();
     }
   }
+}
 
-  if(running == 1 && (millis() - lastMssgTime > 250)){
-    stopMovement();
-  } 
-
-  if(millis() - encTimer > odomInterval){
+void writeOdometry()
+{
+  
     lastSpeed[0] = coder[0];   //record the latest speed value
     lastSpeed[1] = coder[1];
 
@@ -262,8 +253,46 @@ void loop(){
 
     coder[0] = 0;                 //clear the data buffer
     coder[1] = 0;
+}
+
+ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
+
+void setup(){
+  Serial.begin(57600);
+  nh.initNode();
+  nh.subscribe(sub);
+  nh.advertise(Debug);
+  nh.advertise(Pub);
+  nh.advertise(Sensorpub);
+  pinMode (irl, INPUT);
+  pinMode (irc, INPUT);
+  pinMode (irr, INPUT);
+  attachInterrupt(LEFT, LwheelSpeed, CHANGE);
+  attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
+  motorLeft.setSpeed(turnSpeed);
+  motorLeft.run(RELEASE);
+  motorRight.setSpeed(turnSpeed);
+  motorRight.run(RELEASE);
+}
+
+void loop(){
+  static unsigned long encTimer = 0;
+ 
+  nh.spinOnce();
+
+  checkSensors();
+  
+  controlMotors();
+
+  if(running == 1 && (millis() - lastMssgTime > 250)){
+    stopMovement();
+  }
+  
+  if(millis() - encTimer > odomInterval){
+    writeOdometry();
     encTimer = millis();
   }
+  
   delay(1);
 }
 
