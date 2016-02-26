@@ -6,5 +6,8 @@
   <include file="$(find rosserial_server)/launch/serial.launch">
     <arg name="port" value="$(arg mobile_base_port)" />
   </include>
+
+  <param name="robot_description" command="cat $(find vendbot)/urdf/mobile_base.urdf" /> 
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publister" />
 </launch>
 
