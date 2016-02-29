@@ -36,7 +36,8 @@ float goalX = 0.0;
 float goalZ = 0.0;
 boolean running = false;
 int turnSpeed = 125;
-int moveSpeed = 180;
+int turnSpeedMax = 175;
+int moveSpeed = 150;
 int moveSpeedMax = 225;
 int currSpeed = 0;
 int leftHeading = 0; //1 forward, 2 backward
@@ -85,13 +86,14 @@ void messageCb(const geometry_msgs::Twist& msg)
   Debug.publish(&debug_msg);
 }
 
-void nextSpeed(int maxSpeed)
+int nextSpeed(int minSpeed, int maxSpeed)
 {
-  if(currSpeed < maxSpeed){
-    currSpeed += 5;
-    motorRight.setSpeed(currSpeed);
-    motorLeft.setSpeed(currSpeed);
+  if(currSpeed == 0){
+    return minSpeed;
+  } else if(currSpeed < maxSpeed){
+    return currSpeed + 2;
   }
+  return currSpeed;
 }
 
 void moveForward()
@@ -101,11 +103,11 @@ void moveForward()
   running = true;
   leftHeading = 1;
   rightHeading = 1;
-  currSpeed = moveSpeed;
+  currSpeed = nextSpeed(moveSpeed, moveSpeedMax);
   motorRight.run(FORWARD);
-  motorRight.setSpeed(moveSpeed);
+  motorRight.setSpeed(currSpeed);
   motorLeft.run(FORWARD);
-  motorLeft.setSpeed(moveSpeed);
+  motorLeft.setSpeed(currSpeed);
 }
 
 void moveBackward()
@@ -115,11 +117,11 @@ void moveBackward()
   running = true;
   leftHeading = 2;
   rightHeading = 2;
-  currSpeed = moveSpeed;
+  currSpeed = nextSpeed(moveSpeed, moveSpeedMax);
   motorLeft.run(BACKWARD);
-  motorLeft.setSpeed(moveSpeed);
+  motorLeft.setSpeed(currSpeed);
   motorRight.run(BACKWARD);
-  motorRight.setSpeed(moveSpeed);
+  motorRight.setSpeed(currSpeed);
 }
 
 void turnLeft()
@@ -129,6 +131,7 @@ void turnLeft()
   running = true;
   leftHeading = 2;
   rightHeading = 1;
+  currSpeed = turnSpeed;
   motorLeft.run(BACKWARD);
   motorLeft.setSpeed(turnSpeed);
   motorRight.run(FORWARD);
@@ -142,6 +145,7 @@ void turnRight()
   running = true;
   leftHeading = 1;
   rightHeading = 2;
+  currSpeed = turnSpeed;
   motorLeft.run(FORWARD);
   motorLeft.setSpeed(turnSpeed);
   motorRight.run(BACKWARD);
@@ -162,6 +166,39 @@ void stopMovement()
   currSpeed = 0;
   leftHeading = 0;
   rightHeading = 0;
+}
+
+
+boolean movingForward()
+{
+  if(leftHeading == 1 && rightHeading == 1){
+    return true;
+  }
+  return false;
+}
+
+boolean movingBackward()
+{
+  if(leftHeading == 2 && rightHeading == 2){
+    return true;
+  }
+  return false;
+}
+
+boolean turningLeft()
+{
+  if(leftHeading == 2 && rightHeading == 1){
+    return true;
+  }
+  return false;
+}
+
+boolean turningRight()
+{
+  if(leftHeading == 1 && rightHeading == 2){
+    return true;
+  }
+  return false;
 }
 
 void LwheelSpeed()
@@ -321,47 +358,11 @@ void controlMotors()
       stopMovement();
     }
   }
-//  if(movingForward() || movingBackward()) {
-//    nextSpeed(moveSpeedMax);
-//    debugSensors(currSpeed, 0, 0, 0, 0);
-//  }
-  if(running == true && (millis() - lastMssgTime > 250)){
+  if(running == true && (millis() - lastMssgTime > 300)){
     debug_msg.data = "STOPPING MOVEMENT DUE TO LASTMSSGTIME TIMEOUT";
     Debug.publish(&debug_msg);    
     stopMovement();
   }  
-}
-
-boolean movingForward()
-{
-  if(leftHeading == 1 && rightHeading == 1){
-    return true;
-  }
-  return false;
-}
-
-boolean movingBackward()
-{
-  if(leftHeading == 2 && rightHeading == 2){
-    return true;
-  }
-  return false;
-}
-
-boolean turningLeft()
-{
-  if(leftHeading == 2 && rightHeading == 1){
-    return true;
-  }
-  return false;
-}
-
-boolean turningRight()
-{
-  if(leftHeading == 1 && rightHeading == 2){
-    return true;
-  }
-  return false;
 }
 
 void debugOdom(int vel_lx, int vel_az)
