@@ -14,11 +14,15 @@
 #define irr A8
 #define model 20150
 #define MAX_DISTANCE 200
-#define SONAR_PERSONAL_SPACE 1000
-#define IR_CENTER_PERSONAL_SPACE 35
-#define IR_SIDE_PERSONAL_SPACE 25
+#define SONAR_PERSONAL_SPACE 1050
+#define IR_CENTER_PERSONAL_SPACE 40
+#define IR_SIDE_PERSONAL_SPACE 30
 #define odomInterval 200
 #define sensInterval 125
+#define turnSpeedMin 145
+#define turnSpeedMax 180
+#define moveSpeedMin 155
+#define moveSpeedMax 205
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
 
@@ -35,10 +39,6 @@ float currZ = 0.0;
 float goalX = 0.0;
 float goalZ = 0.0;
 boolean running = false;
-int turnSpeed = 125;
-int turnSpeedMax = 175;
-int moveSpeed = 150;
-int moveSpeedMax = 225;
 int currSpeed = 0;
 int leftHeading = 0; //1 forward, 2 backward
 int rightHeading = 0; //1 forward, 2 backward
@@ -47,18 +47,11 @@ unsigned long lastMssgTime = 0;
 float wheelDiameter = 6.56; // In cm
 int wheelSeparation = 26; // In cm
 int encoderTicks = 20; // Per rotation
-double vel_lx = 0; // odom linear x velocity
-double vel_az = 0; // odom angular z velocity
+
 long coder[2] = {
   0,0};
 int lastSpeed[2] = {
   0,0};
-unsigned long range_timer;
-char irl_frameid[] = "/ir_left_depth_frame";
-char irc_frameid[] = "/ir_center_depth_frame";
-char irr_frameid[] = "/ir_right_depth_frame";
-char sl_frameid[] = "/sonar_left_depth_frame";
-char sr_frameid[] = "/sonar_right_depth_frame";
 
 
 ros::NodeHandle  nh;
@@ -91,7 +84,7 @@ int nextSpeed(int minSpeed, int maxSpeed)
   if(currSpeed == 0){
     return minSpeed;
   } else if(currSpeed < maxSpeed){
-    return currSpeed + 2;
+    return currSpeed + 1;
   }
   return currSpeed;
 }
@@ -103,7 +96,7 @@ void moveForward()
   running = true;
   leftHeading = 1;
   rightHeading = 1;
-  currSpeed = nextSpeed(moveSpeed, moveSpeedMax);
+  currSpeed = nextSpeed(moveSpeedMin, moveSpeedMax);
   motorRight.run(FORWARD);
   motorRight.setSpeed(currSpeed);
   motorLeft.run(FORWARD);
@@ -117,7 +110,7 @@ void moveBackward()
   running = true;
   leftHeading = 2;
   rightHeading = 2;
-  currSpeed = nextSpeed(moveSpeed, moveSpeedMax);
+  currSpeed = nextSpeed(moveSpeedMin, moveSpeedMax);
   motorLeft.run(BACKWARD);
   motorLeft.setSpeed(currSpeed);
   motorRight.run(BACKWARD);
@@ -131,11 +124,11 @@ void turnLeft()
   running = true;
   leftHeading = 2;
   rightHeading = 1;
-  currSpeed = turnSpeed;
+  currSpeed = nextSpeed(turnSpeedMin, turnSpeedMax);
   motorLeft.run(BACKWARD);
-  motorLeft.setSpeed(turnSpeed);
+  motorLeft.setSpeed(currSpeed);
   motorRight.run(FORWARD);
-  motorRight.setSpeed(turnSpeed);
+  motorRight.setSpeed(currSpeed);
 }
 
 void turnRight()
@@ -145,11 +138,11 @@ void turnRight()
   running = true;
   leftHeading = 1;
   rightHeading = 2;
-  currSpeed = turnSpeed;
+  currSpeed = nextSpeed(turnSpeedMin, turnSpeedMax);
   motorLeft.run(FORWARD);
-  motorLeft.setSpeed(turnSpeed);
+  motorLeft.setSpeed(currSpeed);
   motorRight.run(BACKWARD);
-  motorRight.setSpeed(turnSpeed);
+  motorRight.setSpeed(currSpeed);
 }
 
 void stopMovement()
@@ -276,6 +269,46 @@ void debugSensors(int dLeft, int dCenter, int dRight, int sLeft, int sRight)
   Sensorpub.publish(&sensor_msg);
 }
 
+void publishIR(float dLeft, float dCenter, float dRight)
+{
+  char irl_frameid[] = "/ir_left_depth_frame";
+  char irc_frameid[] = "/ir_center_depth_frame";
+  char irr_frameid[] = "/ir_right_depth_frame";
+
+  ir_range_msg.header.frame_id =  irl_frameid;   
+  ir_range_msg.range = dLeft / 100;
+  ir_range_msg.header.stamp = nh.now();
+  irl_pub.publish(&ir_range_msg);
+
+  ir_range_msg.header.frame_id =  irc_frameid;
+  ir_range_msg.range = dCenter / 100;
+  ir_range_msg.header.stamp = nh.now();
+  irc_pub.publish(&ir_range_msg);
+
+  ir_range_msg.header.frame_id =  irr_frameid;
+  ir_range_msg.range = dRight / 100;
+  ir_range_msg.header.stamp = nh.now();
+  irr_pub.publish(&ir_range_msg);  
+}
+
+void publishSonar(float sLeft, float sRight)
+{
+  char sl_frameid[] = "/sonar_left_depth_frame";
+  char sr_frameid[] = "/sonar_right_depth_frame";
+
+  sLeft = (sLeft / US_ROUNDTRIP_CM) / 100;
+  sonar_range_msg.header.frame_id =  sl_frameid;
+  sonar_range_msg.range = sLeft;
+  sonar_range_msg.header.stamp = nh.now();
+  sl_pub.publish(&sonar_range_msg);
+    
+  sRight = (sRight / US_ROUNDTRIP_CM) / 100;
+  sonar_range_msg.header.frame_id =  sr_frameid;
+  sonar_range_msg.range = sRight;
+  sonar_range_msg.header.stamp = nh.now();
+  sr_pub.publish(&sonar_range_msg);
+}
+
 void checkSensors()
 {
   float sLeft = sonar_left.ping();
@@ -301,36 +334,9 @@ void checkSensors()
     Debug.publish(&debug_msg); 
   }
 
-  if ( (millis()-range_timer) > 50){
-    ir_range_msg.header.frame_id =  irl_frameid;   
-    ir_range_msg.range = dLeft / 100;
-    ir_range_msg.header.stamp = nh.now();
-    irl_pub.publish(&ir_range_msg);
+  publishIR(dLeft, dCenter, dRight);
 
-    ir_range_msg.header.frame_id =  irc_frameid;
-    ir_range_msg.range = dCenter / 100;
-    ir_range_msg.header.stamp = nh.now();
-    irc_pub.publish(&ir_range_msg);
-
-    ir_range_msg.header.frame_id =  irr_frameid;
-    ir_range_msg.range = dRight / 100;
-    ir_range_msg.header.stamp = nh.now();
-    irr_pub.publish(&ir_range_msg);
-
-    sLeft = (sLeft / US_ROUNDTRIP_CM) / 100;
-    sonar_range_msg.header.frame_id =  sl_frameid;
-    sonar_range_msg.range = sLeft;
-    sonar_range_msg.header.stamp = nh.now();
-    sl_pub.publish(&sonar_range_msg);
-    
-    sRight = (sRight / US_ROUNDTRIP_CM) / 100;
-    sonar_range_msg.header.frame_id =  sr_frameid;
-    sonar_range_msg.range = sRight;
-    sonar_range_msg.header.stamp = nh.now();
-    sr_pub.publish(&sonar_range_msg);
-    
-    range_timer =  millis();
-  }
+  publishSonar(sLeft, sRight);
   
   //debugSensors(dLeft, dCenter, dRight, sLeft, sRight);
 }
@@ -390,6 +396,8 @@ void publishOdom(int vel_lx, int vel_az)
 
 void handleOdometry()
 {
+  double vel_lx = 0; // odom linear x velocity
+  double vel_az = 0; // odom angular z velocity  
   lastSpeed[0] = coder[0];   //record the latest speed value
   lastSpeed[1] = coder[1];
 
@@ -449,13 +457,13 @@ void setup(){
   Serial.begin(57600);
   setupRosTopics();
   pinMode (irl, INPUT);
-  //pinMode (irc, INPUT);
+  pinMode (irc, INPUT);
   pinMode (irr, INPUT);
   attachInterrupt(LEFT, LwheelSpeed, CHANGE);
   attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
-  motorLeft.setSpeed(turnSpeed);
+  motorLeft.setSpeed(turnSpeedMin);
   motorLeft.run(RELEASE);
-  motorRight.setSpeed(turnSpeed);
+  motorRight.setSpeed(turnSpeedMin);
   motorRight.run(RELEASE);
   setupSensorMsgs();
 }
