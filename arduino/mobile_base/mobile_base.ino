@@ -18,8 +18,9 @@
 #define SONAR_PERSONAL_SPACE 1050
 #define IR_CENTER_PERSONAL_SPACE 40
 #define IR_SIDE_PERSONAL_SPACE 30
-#define odomInterval 100
-#define sensInterval 125
+#define odomInterval 500
+#define sensInterval 100
+#define motorInterval 50
 #define turnSpeedMin 145
 #define turnSpeedMax 180
 #define moveSpeedMin 175
@@ -549,6 +550,7 @@ void setup(){
 void loop(){
   static unsigned long encTimer = 0;
   static unsigned long sensTimer = 0;
+  static unsigned long motorTimer = 0;
  
   nh.spinOnce();
 
@@ -556,9 +558,12 @@ void loop(){
     checkSensors();
     sensTimer = millis();
   }
-  
-  controlMotors();
-  
+
+  if(millis() - motorTimer > motorInterval){
+    controlMotors();
+    motorTimer = millis();
+  }
+
   if(millis() - encTimer > odomInterval){
     handleOdometry();
     encTimer = millis();
@@ -567,6 +572,7 @@ void loop(){
   delay(1);
 }
 
+// TODO: use volatile keyword in variable declaration for things like rev counters 
 // TODO: Make debug statements use a function
 // TODO: Move vars local to the functions where possible
 // TODO: Move to constants instead of vars where possible
