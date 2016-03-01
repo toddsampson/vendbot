@@ -567,6 +567,8 @@ void loop(){
   delay(1);
 }
 
+// TODO: Make debug statements use a function
+// TODO: Move vars local to the functions where possible
 // TODO: Move to constants instead of vars where possible
 // TODO: Serious refactor
 // TODO: Pre-compute values so they don't need to be recomputed every time
