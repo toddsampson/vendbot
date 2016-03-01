@@ -11,18 +11,7 @@
   <xacro:property name="sensor_height" value="0.0050" />
   <xacro:property name="pi" value="3.14159265359" />
 
-  <!-- fictitious center point on ground and between wheels for navigation -->
-  <link name="base_footprint">
-    <visual>
-      <geometry>
-        <box size="0.001 0.001 0.001" />
-      </geometry>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <material name="black">
-        <color rgba="0 0 0 1" />
-      </material>
-    </visual>
-  </link>
+  <!-- fictitious center point between wheels for navigation -->
   <link name="base_link">
     <visual>
       <geometry>
@@ -33,11 +22,6 @@
       </material>
     </visual>
   </link>
-  <joint name="base_footprint_joint" type="fixed">
-    <parent link="base_footprint" />
-    <child link="base_link" />
-    <origin xyz="0 0 ${wheel_r}" rpy="0 0 0" />
-  </joint>
 
   <!-- Base platform -->
   <link name="platform">

@@ -4,18 +4,7 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="mobile_base" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <!-- fictitious center point on ground and between wheels for navigation -->
-  <link name="base_footprint">
-    <visual>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <material name="black">
-        <color rgba="0 0 0 1"/>
-      </material>
-    </visual>
-  </link>
+  <!-- fictitious center point between wheels for navigation -->
   <link name="base_link">
     <visual>
       <geometry>
@@ -26,11 +15,6 @@
       </material>
     </visual>
   </link>
-  <joint name="base_footprint_joint" type="fixed">
-    <parent link="base_footprint"/>
-    <child link="base_link"/>
-    <origin rpy="0 0 0" xyz="0 0 0.0328"/>
-  </joint>
   <!-- Base platform -->
   <link name="platform">
     <visual>
@@ -118,30 +102,30 @@
       </geometry>
     </visual>
   </link>
-  <joint name="sonar_right_joint" type="fixed">
-    <parent link="platform"/>
-    <child link="sonar_right"/>
-    <origin rpy="0 0 -0.35" xyz="0.0936 -0.0635 0.005"/>
-  </joint>
   <joint name="sonar_left_joint" type="fixed">
     <parent link="platform"/>
     <child link="sonar_left"/>
     <origin rpy="0 0 0.35" xyz="0.0936 0.0635 0.005"/>
   </joint>
-  <joint name="ir_right_joint" type="fixed">
+  <joint name="sonar_right_joint" type="fixed">
     <parent link="platform"/>
-    <child link="ir_right"/>
-    <origin rpy="0 0 -0.7" xyz="0.0766 -0.125 0.005"/>
+    <child link="sonar_right"/>
+    <origin rpy="0 0 -0.35" xyz="0.0936 -0.0635 0.005"/>
+  </joint>
+  <joint name="ir_left_joint" type="fixed">
+    <parent link="platform"/>
+    <child link="ir_left"/>
+    <origin rpy="0 0 0.7" xyz="0.0766 0.125 0.005"/>
   </joint>
   <joint name="ir_center_joint" type="fixed">
     <parent link="platform"/>
     <child link="ir_center"/>
     <origin rpy="0 0 0" xyz="0.1023 0 0.005"/>
   </joint>
-  <joint name="ir_left_joint" type="fixed">
+  <joint name="ir_right_joint" type="fixed">
     <parent link="platform"/>
-    <child link="ir_left"/>
-    <origin rpy="0 0 0.7" xyz="0.0766 0.125 0.005"/>
+    <child link="ir_right"/>
+    <origin rpy="0 0 -0.7" xyz="0.0766 -0.125 0.005"/>
   </joint>
   <link name="sonar_left_depth_frame">
     <inertial>
