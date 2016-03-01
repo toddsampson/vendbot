@@ -3,8 +3,9 @@
 #include <ros/time.h>
 #include <std_msgs/String.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <sensor_msgs/Range.h>
-#include <tf/transform_broadcaster.h>
+//#include <tf/transform_broadcaster.h>
 //#include <nav_msgs/Odometry.h>  
 #include <AFMotor.h>
 #include <NewPing.h>
@@ -49,7 +50,7 @@ unsigned long lastMssgTime = 0;
 float wheelDiameter = 6.56; // In cm
 int wheelSeparation = 26; // In cm
 int encoderTicks = 20; // Per rotation
-
+unsigned long lastMilli = 0;
 long coder[2] = {
   0,0};
 int lastSpeed[2] = {
@@ -59,9 +60,6 @@ int lastSpeed[2] = {
 ros::NodeHandle  nh;
 std_msgs::String debug_msg;
 ros::Publisher Debug ("debug_bot", &debug_msg);
-//nav_msgs::Odometry odom_msg;
-geometry_msgs::Twist odom_msg;
-ros::Publisher Pub ("ard_odom", &odom_msg);
 geometry_msgs::Twist sensor_msg;
 ros::Publisher Sensorpub ("sensor_debug", &sensor_msg);
 sensor_msgs::Range ir_range_msg;
@@ -71,10 +69,11 @@ ros::Publisher irr_pub( "ir_right_depth_frame", &ir_range_msg);
 sensor_msgs::Range sonar_range_msg;
 ros::Publisher sl_pub( "sonar_left_depth_frame", &sonar_range_msg);
 ros::Publisher sr_pub( "sonar_right_depth_frame", &sonar_range_msg);
-geometry_msgs::TransformStamped t;
-tf::TransformBroadcaster broadcaster;
-char base_link[] = "/base_link";
-char odom[] = "/odom";
+geometry_msgs::Vector3Stamped rpm_msg;
+ros::Publisher rpm_pub("rpm", &rpm_msg);
+ros::Time current_time;
+ros::Time last_time;
+
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
@@ -439,7 +438,7 @@ void controlMotors()
   }  
 }
 
-void debugOdom(int vel_lx, int vel_az)
+void debugOdom(double vel_lx, double vel_az)
 {
   sensor_msg.linear.x = vel_lx;
   sensor_msg.linear.y = lastSpeed[0];
@@ -450,29 +449,25 @@ void debugOdom(int vel_lx, int vel_az)
   Sensorpub.publish(&sensor_msg);
 }
 
-void publishOdom(int vel_lx, int vel_az)
+void publishOdom(double vel_lx, double vel_az, unsigned long time)
 {
-  odom_msg.linear.x = vel_lx;
-  odom_msg.angular.z = vel_az;
+  //odom_msg.linear.x = vel_lx;
+  //odom_msg.angular.z = vel_az;
   //odom_msg.header.stamp = nh.now();
   //odom_msg.header.frame_id = "odom";
   //odom_msg.child_frame_id = "base_link";
   //odom_msg.twist.twist.linear.x = vel_lx;
   //odom_msg.twist.twist.angular.z = vel_az;
-  Pub.publish(&odom_msg);
-
-  t.header.frame_id = odom;
-  t.child_frame_id = base_link;
-  t.transform.translation.x = vel_lx; 
-  t.transform.rotation.x = 0.0;
-  t.transform.rotation.y = 0.0; 
-  t.transform.rotation.z = vel_az; 
-  t.transform.rotation.w = 0.0;  
-  t.header.stamp = nh.now();
-  broadcaster.sendTransform(t);  
+  //Pub.publish(&odom_msg); 
+  rpm_msg.header.stamp = nh.now();
+  rpm_msg.vector.x = vel_lx;
+  rpm_msg.vector.y = vel_az;
+  rpm_msg.vector.z = double(time)/1000;
+  rpm_pub.publish(&rpm_msg);
+  //nh.spinOnce();  
 }
 
-void handleOdometry()
+void handleOdometry(unsigned long time)
 {
   double vel_lx = 0; // odom linear x velocity
   double vel_az = 0; // odom angular z velocity  
@@ -497,7 +492,7 @@ void handleOdometry()
   }
 
   debugOdom(vel_lx, vel_az);
-  publishOdom(vel_lx, vel_az);
+  publishOdom(vel_lx, vel_az, time);
   coder[0] = 0;   //clear the data buffer
   coder[1] = 0;
 }
@@ -520,10 +515,10 @@ void setupSensorMsgs()
 void setupRosTopics()
 {
   nh.initNode();
-  broadcaster.init(nh);
   nh.subscribe(sub);
+  nh.advertise(rpm_pub);
   nh.advertise(Debug);
-  nh.advertise(Pub);
+  //nh.advertise(Pub);
   nh.advertise(Sensorpub);
   nh.advertise(irl_pub);
   nh.advertise(irc_pub);
@@ -551,27 +546,30 @@ void loop(){
   static unsigned long encTimer = 0;
   static unsigned long sensTimer = 0;
   static unsigned long motorTimer = 0;
- 
+  unsigned long time = millis();
   nh.spinOnce();
 
-  if(millis() - sensTimer > sensInterval){
+  if(lastMilli - sensTimer > sensInterval){
     checkSensors();
-    sensTimer = millis();
+    sensTimer = time;
   }
 
-  if(millis() - motorTimer > motorInterval){
+  if(lastMilli - motorTimer > motorInterval){
     controlMotors();
-    motorTimer = millis();
+    motorTimer = time;
   }
 
-  if(millis() - encTimer > odomInterval){
-    handleOdometry();
-    encTimer = millis();
+  if(lastMilli - encTimer > odomInterval){
+    handleOdometry(time-lastMilli);
+    encTimer = time;
   }
-  
+
+  lastMilli = time;
   delay(1);
 }
 
+// TODO: set millis to one var at top of loop and use consistent value
+// TODO: store last millis time and last millis pub time for calculating
 // TODO: use volatile keyword in variable declaration for things like rev counters 
 // TODO: Make debug statements use a function
 // TODO: Move vars local to the functions where possible

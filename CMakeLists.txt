@@ -11,6 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
   rtabmap_ros
   stereo_image_proc
   usb_cam
+  geometry_msgs
+  nav_msgs
+  std_msgs
+  sensor_msgs
+  roscpp
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -132,6 +138,7 @@ include_directories(
 
 ## Declare a C++ executable
 # add_executable(vendbot_node src/vendbot_node.cpp)
+add_executable(base_controller src/base_controller.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -141,7 +148,7 @@ include_directories(
 # target_link_libraries(vendbot_node
 #   ${catkin_LIBRARIES}
 # )
-
+target_link_libraries(base_controller ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############
