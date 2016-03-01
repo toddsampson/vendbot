@@ -4,6 +4,7 @@
 #include <std_msgs/String.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Range.h>
+#include <tf/transform_broadcaster.h>
 //#include <nav_msgs/Odometry.h>  
 #include <AFMotor.h>
 #include <NewPing.h>
@@ -17,12 +18,12 @@
 #define SONAR_PERSONAL_SPACE 1050
 #define IR_CENTER_PERSONAL_SPACE 40
 #define IR_SIDE_PERSONAL_SPACE 30
-#define odomInterval 200
+#define odomInterval 100
 #define sensInterval 125
 #define turnSpeedMin 145
 #define turnSpeedMax 180
-#define moveSpeedMin 155
-#define moveSpeedMax 205
+#define moveSpeedMin 175
+#define moveSpeedMax 225
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
 
@@ -69,6 +70,10 @@ ros::Publisher irr_pub( "ir_right_depth_frame", &ir_range_msg);
 sensor_msgs::Range sonar_range_msg;
 ros::Publisher sl_pub( "sonar_left_depth_frame", &sonar_range_msg);
 ros::Publisher sr_pub( "sonar_right_depth_frame", &sonar_range_msg);
+geometry_msgs::TransformStamped t;
+tf::TransformBroadcaster broadcaster;
+char base_link[] = "/base_link";
+char odom[] = "/odom";
 
 void messageCb(const geometry_msgs::Twist& msg)
 {
@@ -89,6 +94,61 @@ int nextSpeed(int minSpeed, int maxSpeed)
   return currSpeed;
 }
 
+int speedBump()
+{
+  int currLeftCnt = abs(coder[0]);
+  int currRightCnt = abs(coder[1]);
+  if(currRightCnt == 0){
+    if(currLeftCnt > 1){
+      return -50;
+    } else if (currLeftCnt == 1) {
+      return -40;
+    }
+  }
+  if(currLeftCnt == 0){
+    if(currRightCnt > 1){
+      return 50;
+    } else if (currRightCnt == 1) {
+      return 40;
+    }
+  }
+  float encCntRatio = currLeftCnt / currRightCnt;
+  if(encCntRatio < 0.99){
+    if(encCntRatio < 0.5){
+      return 50;
+    }
+    return 40;
+  } else if(encCntRatio > 1.01){
+    if(encCntRatio > 1.5){
+      return -50;
+    }
+    return -40;
+  }
+  return 0;
+}
+
+int getLeftSpeed(int correction)
+{
+  int newSpeed = currSpeed + correction;
+  if(newSpeed > moveSpeedMax){
+    return moveSpeedMax;
+  } else if(newSpeed < moveSpeedMin){
+    return moveSpeedMin;
+  }
+  return newSpeed;
+}
+
+int getRightSpeed(int correction)
+{
+  int newSpeed = currSpeed - correction;
+  if(newSpeed > moveSpeedMax){
+    return moveSpeedMax;
+  } else if(newSpeed < moveSpeedMin){
+    return moveSpeedMin;
+  }
+  return newSpeed;
+}
+
 void moveForward()
 {
   debug_msg.data = "MOVING FORWARD";
@@ -97,10 +157,13 @@ void moveForward()
   leftHeading = 1;
   rightHeading = 1;
   currSpeed = nextSpeed(moveSpeedMin, moveSpeedMax);
-  motorRight.run(FORWARD);
-  motorRight.setSpeed(currSpeed);
+  int correction = speedBump();
+  int leftSpeed = getLeftSpeed(correction);
+  int rightSpeed = getRightSpeed(correction);
   motorLeft.run(FORWARD);
-  motorLeft.setSpeed(currSpeed);
+  motorLeft.setSpeed(leftSpeed);
+  motorRight.run(FORWARD);
+  motorRight.setSpeed(rightSpeed);  
 }
 
 void moveBackward()
@@ -111,6 +174,10 @@ void moveBackward()
   leftHeading = 2;
   rightHeading = 2;
   currSpeed = nextSpeed(moveSpeedMin, moveSpeedMax);
+  int correction = speedBump();
+  int leftSpeed = getLeftSpeed(correction);
+  int rightSpeed = getRightSpeed(correction);
+  //debugSensors(currSpeed, correction, 0, leftSpeed, rightSpeed);
   motorLeft.run(BACKWARD);
   motorLeft.setSpeed(currSpeed);
   motorRight.run(BACKWARD);
@@ -392,6 +459,16 @@ void publishOdom(int vel_lx, int vel_az)
   //odom_msg.twist.twist.linear.x = vel_lx;
   //odom_msg.twist.twist.angular.z = vel_az;
   Pub.publish(&odom_msg);
+
+  t.header.frame_id = odom;
+  t.child_frame_id = base_link;
+  t.transform.translation.x = vel_lx; 
+  t.transform.rotation.x = 0.0;
+  t.transform.rotation.y = 0.0; 
+  t.transform.rotation.z = vel_az; 
+  t.transform.rotation.w = 0.0;  
+  t.header.stamp = nh.now();
+  broadcaster.sendTransform(t);  
 }
 
 void handleOdometry()
@@ -442,6 +519,7 @@ void setupSensorMsgs()
 void setupRosTopics()
 {
   nh.initNode();
+  broadcaster.init(nh);
   nh.subscribe(sub);
   nh.advertise(Debug);
   nh.advertise(Pub);
