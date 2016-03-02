@@ -10,6 +10,7 @@
   <param name="robot_description" textfile="$(find vendbot)/urdf/mobile_base.urdf" /> 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publister" />
+  <node pkg="vendbot" type="base_controller" name="base_controller" />
   <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find vendbot)/vendbot.rviz" /> 
   -->
 </launch>
