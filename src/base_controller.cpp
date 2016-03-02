@@ -13,14 +13,10 @@
 
 #define encoder_pulse   20
 #define wheel_diameter  0.0656   //m
-#define wheel_width     0.26     //m
-#define track_width     0.0267   //m
+#define wheel_width     0.0266     //m
+#define track_width     0.269   //m
 #define pi              3.1415926
 #define two_pi          6.2831853
-
-float wheelDiameter = 6.56; // In cm
-int wheelSeparation = 26; // In cm
-int encoderTicks = 20; // Per rotation
 
 double rpm_act1 = 0.0;
 double rpm_act2 = 0.0;
