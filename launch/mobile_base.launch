@@ -1,5 +1,6 @@
 <launch>
   <arg name="mobile_base_port" default="/dev/ttyACM0" /> 
+  <arg name="rviz" default="false" />
 
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
 
@@ -11,7 +12,7 @@
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publister" />
   <node pkg="vendbot" type="base_controller" name="base_controller" />
-  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find vendbot)/vendbot.rviz" /> 
-  -->
+  
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find vendbot)/vendbot.rviz" if="$(arg rviz)" /> 
 </launch>
 

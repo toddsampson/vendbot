@@ -15,8 +15,8 @@
       </material>
     </visual>
   </link>
-  <!-- Base platform -->
-  <link name="platform">
+  <!-- Bot platforms -->
+  <link name="platform_base">
     <visual>
       <geometry>
         <box size="0.2032 0.2286 0.0064"/>
@@ -26,10 +26,39 @@
       </material>
     </visual>
   </link>
-  <joint name="platform_joint" type="fixed">
+  <link name="platform_upper">
+    <visual>
+      <geometry>
+        <box size="0.2032 0.2286 0.0064"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="platform_joint_base" type="fixed">
     <parent link="base_link"/>
-    <child link="platform"/>
+    <child link="platform_base"/>
     <origin rpy="0 0 0" xyz="0 0 0.0178"/>
+  </joint>
+  <joint name="platform_joint_upper" type="fixed">
+    <parent link="base_link"/>
+    <child link="platform_upper"/>
+    <origin rpy="0 0 0" xyz="0 0 0.0978"/>
+  </joint>
+  <!-- Stereo Camera -->
+  <link name="camera_link">
+    <visual>
+      <geometry>
+        <box size="0.020 0.075 0.015 "/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+  </link>
+  <joint name="camera_base_link" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin rpy="0 0 0" xyz="0.1116 0 0.0978"/>
   </joint>
   <!-- Differential Drive Wheels -->
   <link name="wheel_right">
@@ -103,27 +132,27 @@
     </visual>
   </link>
   <joint name="sonar_left_joint" type="fixed">
-    <parent link="platform"/>
+    <parent link="platform_base"/>
     <child link="sonar_left"/>
     <origin rpy="0 0 0.35" xyz="0.0936 0.0635 0.005"/>
   </joint>
   <joint name="sonar_right_joint" type="fixed">
-    <parent link="platform"/>
+    <parent link="platform_base"/>
     <child link="sonar_right"/>
     <origin rpy="0 0 -0.35" xyz="0.0936 -0.0635 0.005"/>
   </joint>
   <joint name="ir_left_joint" type="fixed">
-    <parent link="platform"/>
+    <parent link="platform_base"/>
     <child link="ir_left"/>
     <origin rpy="0 0 0.7" xyz="0.0766 0.125 0.005"/>
   </joint>
   <joint name="ir_center_joint" type="fixed">
-    <parent link="platform"/>
+    <parent link="platform_base"/>
     <child link="ir_center"/>
     <origin rpy="0 0 0" xyz="0.1023 0 0.005"/>
   </joint>
   <joint name="ir_right_joint" type="fixed">
-    <parent link="platform"/>
+    <parent link="platform_base"/>
     <child link="ir_right"/>
     <origin rpy="0 0 -0.7" xyz="0.0766 -0.125 0.005"/>
   </joint>
