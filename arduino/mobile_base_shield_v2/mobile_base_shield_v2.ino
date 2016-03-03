@@ -514,10 +514,8 @@ void setup(){
   attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
   AFMS.begin();
   motorLeft->setSpeed(turnSpeedMin);
-  motorLeft->run(FORWARD);
   motorLeft->run(RELEASE);
   motorRight->setSpeed(turnSpeedMin);
-  motorRight->run(FORWARD);
   motorRight->run(RELEASE);
   ir_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
   ir_range_msg.field_of_view = 0.01;
