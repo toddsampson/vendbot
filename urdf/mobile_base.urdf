@@ -47,18 +47,31 @@
     <origin rpy="0 0 0" xyz="0 0 0.0978"/>
   </joint>
   <!-- Stereo Camera -->
-  <link name="camera_link">
+  <link name="left">
     <visual>
       <geometry>
-        <box size="0.020 0.075 0.015 "/>
+        <box size="0.020 0.015 0.015 "/>
       </geometry>
       <material name="black"/>
     </visual>
   </link>
-  <joint name="camera_base_link" type="fixed">
+  <link name="right">
+    <visual>
+      <geometry>
+        <box size="0.020 0.015 0.015 "/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+  </link>
+  <joint name="camera_joint_left" type="fixed">
     <parent link="base_link"/>
-    <child link="camera_link"/>
-    <origin rpy="0 0 0" xyz="0.1116 0 0.0978"/>
+    <child link="left"/>
+    <origin rpy="0 0 0" xyz="0.1116 -0.053 0.0978"/>
+  </joint>
+  <joint name="camera_joint_right" type="fixed">
+    <parent link="base_link"/>
+    <child link="right"/>
+    <origin rpy="0 0 0" xyz="0.1116 0.053 0.0978"/>
   </joint>
   <!-- Differential Drive Wheels -->
   <link name="wheel_right">
