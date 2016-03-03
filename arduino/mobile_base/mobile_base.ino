@@ -6,7 +6,7 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <sensor_msgs/Range.h>
 //#include <tf/transform_broadcaster.h>
-//#include <nav_msgs/Odometry.h>  
+//#include <nav_msgs/Odometry.h>
 #include <AFMotor.h>
 #include <NewPing.h>
 #include <SharpIR.h>
@@ -23,8 +23,8 @@
 #define MOVEMENT_TIMEOUT 300
 #define turnSpeedMin 145
 #define turnSpeedMax 180
-#define moveSpeedMin 170
-#define moveSpeedMax 255
+#define moveSpeedMin 130
+#define moveSpeedMax 225
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
 
@@ -32,7 +32,7 @@ NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
 SharpIR ir_left(irl, 25, 93, model);
 SharpIR ir_center(irc, 25, 93, model);
-SharpIR ir_right(irr, 25, 93, model);
+SharpIR ir_right(irr, 25, 93, model); 
 AF_DCMotor motorLeft(3); //left wheel
 AF_DCMotor motorRight(1); //right wheel
 
@@ -539,6 +539,7 @@ void loop(){
   delay(1);
 }
 
+// TODO only call run on the motor if we are switching the directions
 // TODO: try turning off all the sensor stuff
 // TODO: try spinning the nh more often
 // TODO: have a max rpm set and use that to tune motor values
