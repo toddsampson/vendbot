@@ -19,9 +19,7 @@
 #define SONAR_PERSONAL_SPACE 1050
 #define IR_CENTER_PERSONAL_SPACE 40
 #define IR_SIDE_PERSONAL_SPACE 30
-#define odomInterval 300
-#define sensInterval 100
-#define motorInterval 50
+#define motorInterval 100
 #define turnSpeedMin 145
 #define turnSpeedMax 180
 #define moveSpeedMin 170
@@ -58,11 +56,11 @@ long prevCoder0 = 0;
 long prevCoder1 = 0;
 
 ros::NodeHandle  nh;
-std_msgs::String debug_msg;
-ros::Publisher Debug ("debug_bot", &debug_msg);
-geometry_msgs::Twist twist_msg;
-ros::Publisher Sensorpub ("sensor_debug", &twist_msg);
-ros::Publisher Odompub ("odom_debug", &twist_msg);
+//std_msgs::String debug_msg;
+//ros::Publisher Debug ("debug_bot", &debug_msg);
+//geometry_msgs::Twist twist_msg;
+//ros::Publisher Sensorpub ("sensor_debug", &twist_msg);
+//ros::Publisher Odompub ("odom_debug", &twist_msg);
 sensor_msgs::Range ir_range_msg;
 ros::Publisher irl_pub( "ir_left_depth_frame", &ir_range_msg);
 ros::Publisher irc_pub( "ir_center_depth_frame", &ir_range_msg);
@@ -72,15 +70,13 @@ ros::Publisher sl_pub( "sonar_left_depth_frame", &sonar_range_msg);
 ros::Publisher sr_pub( "sonar_right_depth_frame", &sonar_range_msg);
 geometry_msgs::Vector3Stamped rpm_msg;
 ros::Publisher rpm_pub("rpm", &rpm_msg);
-ros::Time current_time;
-ros::Time last_time;
 
 void messageCb(const geometry_msgs::Twist& msg){
   goalX = msg.linear.x;
   goalZ = msg.angular.z;
   lastMssgTime = millis();
-  debug_msg.data = "RUNNING MSSG CALLBACK";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "RUNNING MSSG CALLBACK";
+//  Debug.publish(&debug_msg);
 }
 
 int nextSpeed(int minSpeed, int maxSpeed){
@@ -97,29 +93,29 @@ int speedBump(){
   int currRightCnt = abs(coder1);
   if(currRightCnt == 0){
     if(currLeftCnt > 1){
-      return -40;
+      return -50;
     } else if (currLeftCnt == 1) {
-      return -30;
+      return -35;
     }
   }
   if(currLeftCnt == 0){
     if(currRightCnt > 1){
-      return 40;
+      return 50;
     } else if (currRightCnt == 1) {
-      return 30;
+      return 35;
     }
   }
   float encCntRatio = currLeftCnt / currRightCnt;
   if(encCntRatio < 0.99){
     if(encCntRatio < 0.5){
-      return 40;
+      return 50;
     }
-    return 30;
+    return 35;
   } else if(encCntRatio > 1.01){
     if(encCntRatio > 1.5){
-      return -40;
+      return -50;
     }
-    return -30;
+    return -35;
   }
   return 0;
 }
@@ -145,8 +141,8 @@ int getRightSpeed(int correction){
 }
 
 void moveForward(){
-  debug_msg.data = "MOVING FORWARD";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "MOVING FORWARD";
+//  Debug.publish(&debug_msg);
   running = true;
   leftHeading = 1;
   rightHeading = 1;
@@ -161,8 +157,8 @@ void moveForward(){
 }
 
 void moveBackward(){
-  debug_msg.data = "MOVING BACKWARD";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "MOVING BACKWARD";
+//  Debug.publish(&debug_msg);
   running = true;
   leftHeading = 2;
   rightHeading = 2;
@@ -178,8 +174,8 @@ void moveBackward(){
 }
 
 void turnLeft(){
-  debug_msg.data = "TURN LEFT";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "TURN LEFT";
+//  Debug.publish(&debug_msg);
   running = true;
   leftHeading = 2;
   rightHeading = 1;
@@ -191,8 +187,8 @@ void turnLeft(){
 }
 
 void turnRight(){
-  debug_msg.data = "TURN RIGHT";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "TURN RIGHT";
+//  Debug.publish(&debug_msg);
   running = true;
   leftHeading = 1;
   rightHeading = 2;
@@ -204,8 +200,8 @@ void turnRight(){
 }
 
 void stopMovement(){
-  debug_msg.data = "MOVEMENT STOPPED";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "MOVEMENT STOPPED";
+//  Debug.publish(&debug_msg);
   motorLeft.run(RELEASE);
   motorRight.run(RELEASE);
   running = false;
@@ -249,24 +245,24 @@ boolean turningRight(){
 
 void LwheelSpeed(){
   if(leftHeading == 1){
-    debug_msg.data = "recording left wheel forward action";
-    Debug.publish(&debug_msg);  
+//    debug_msg.data = "recording left wheel forward action";
+//    Debug.publish(&debug_msg);  
     coder0 ++;
   } else if(leftHeading == 2){
-    debug_msg.data = "recording left wheel backward action";
-    Debug.publish(&debug_msg);  
+//    debug_msg.data = "recording left wheel backward action";
+//    Debug.publish(&debug_msg);  
     coder0 --;
   }
 }
 
 void RwheelSpeed(){
   if(rightHeading == 1){
-    debug_msg.data = "recording right wheel forward action";
-    Debug.publish(&debug_msg);  
+//    debug_msg.data = "recording right wheel forward action";
+//    Debug.publish(&debug_msg);  
     coder1 ++;
   } else if(rightHeading == 2){
-    debug_msg.data = "recording right wheel backward action";
-    Debug.publish(&debug_msg);  
+//    debug_msg.data = "recording right wheel backward action";
+//    Debug.publish(&debug_msg);  
     coder1 --;
   }
 }
@@ -299,15 +295,15 @@ boolean sensorBlocked(int sLeft, int sRight, int dLeft, int dCenter, int dRight)
   return false;
 }
 
-void debugSensors(int dLeft, int dCenter, int dRight, int sLeft, int sRight){
-  twist_msg.linear.x = dLeft;
-  twist_msg.linear.y = dCenter;
-  twist_msg.linear.z = dRight;
-  twist_msg.angular.x = sLeft;
-  twist_msg.angular.y = forwardBlocked;
-  twist_msg.angular.z = sRight;
-  Sensorpub.publish(&twist_msg);
-}
+//void debugSensors(int dLeft, int dCenter, int dRight, int sLeft, int sRight){
+//  twist_msg.linear.x = dLeft;
+//  twist_msg.linear.y = dCenter;
+//  twist_msg.linear.z = dRight;
+//  twist_msg.angular.x = sLeft;
+//  twist_msg.angular.y = forwardBlocked;
+//  twist_msg.angular.z = sRight;
+//  Sensorpub.publish(&twist_msg);
+//}
 
 void publishIR(float dLeft, float dCenter, float dRight){
   char irl_frameid[] = "/ir_left_depth_frame";
@@ -349,24 +345,24 @@ void publishSonar(float sLeft, float sRight){
 
 void checkForBlocks(float sLeft, float sRight, float dLeft, float dCenter, float dRight){
   if(sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight)){
-    if(forwardBlocked == 0){
-      debug_msg.data = "BLOCKING FORWARD MOTION";
-      Debug.publish(&debug_msg);
-    }
+//    if(forwardBlocked == 0){
+//      debug_msg.data = "BLOCKING FORWARD MOTION";
+//      Debug.publish(&debug_msg);
+//    }
     forwardBlocked = 1;    
   } else {
-    if(forwardBlocked == 1){
-      debug_msg.data = "FORWARD MOTION UNBLOCKED";
-      Debug.publish(&debug_msg); 
-    }
+//    if(forwardBlocked == 1){
+//      debug_msg.data = "FORWARD MOTION UNBLOCKED";
+//      Debug.publish(&debug_msg); 
+//    }
     forwardBlocked = 0;
   }
 
   if(goalX > 0.1 && (sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight))){
     goalX = 0;
     goalZ = 0;
-    debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
-    Debug.publish(&debug_msg); 
+//    debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
+//    Debug.publish(&debug_msg); 
   }
 }
 
@@ -388,8 +384,8 @@ void controlMotors(){
     currX = goalX;  // later we will slowly ramp curr up towards goal
     currZ = goalZ;  // and use an accel method to determine speed to set
     if(currX > 0.1 || currX < -0.1 || currZ > 0.1 || currZ < -0.1){
-      debug_msg.data = "NEW ACTION STARTING";
-      Debug.publish(&debug_msg);
+//      debug_msg.data = "NEW ACTION STARTING";
+//      Debug.publish(&debug_msg);
       if(currX > 0.1){
         if(forwardBlocked == 0){
           moveForward();
@@ -405,23 +401,24 @@ void controlMotors(){
       stopMovement();
     }
   }
-  debugSensors(millis()/1000, lastMssgTime/1000,(millis() - lastMssgTime)/1000,0,0);  
-  if((millis() - lastMssgTime) > 1000){
-    debug_msg.data = "STOPPING MOVEMENT DUE TO LASTMSSGTIME TIMEOUT";
-    Debug.publish(&debug_msg);    
-    //stopMovement();
+//  debugSensors(millis()/1000, lastMssgTime/1000,(millis() - lastMssgTime)/1000,0,0);  
+  if((millis() - lastMssgTime) > 500){
+//    debug_msg.data = "STOPPING MOVEMENT DUE TO LASTMSSGTIME TIMEOUT";
+//    Debug.publish(&debug_msg);    
+    goalX = 0;
+    goalZ = 0;
   }  
 }
 
-void debugOdom(double vel_lx, double vel_az, long currCoder0, long currCoder1){
-  twist_msg.linear.x = vel_lx;
-  twist_msg.linear.y = currCoder0;
-  twist_msg.linear.z = currCoder1;
-  twist_msg.angular.x = leftHeading;
-  twist_msg.angular.y = rightHeading;
-  twist_msg.angular.z = vel_az;
-  Odompub.publish(&twist_msg);
-}
+//void debugOdom(double vel_lx, double vel_az, long currCoder0, long currCoder1){
+//  twist_msg.linear.x = vel_lx;
+//  twist_msg.linear.y = currCoder0;
+//  twist_msg.linear.z = currCoder1;
+//  twist_msg.angular.x = leftHeading;
+//  twist_msg.angular.y = rightHeading;
+//  twist_msg.angular.z = vel_az;
+//  Odompub.publish(&twist_msg);
+//}
 
 void publishOdom(double vel_lx, double vel_az, unsigned long time){
   rpm_msg.header.stamp = nh.now();
@@ -473,13 +470,34 @@ void handleOdometry(unsigned long time){
 //    vel_az = rightVelAz(currCoder0, currCoder1);
 //  }
 
-  debugOdom(vel_lx, vel_az, currCoder0, currCoder1);
+//  debugOdom(vel_lx, vel_az, currCoder0, currCoder1);
   publishOdom(vel_lx, vel_az, time);
 }
 
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
 
-void setupSensorMsgs(){
+void setup(){
+  Serial.begin(57600);
+  nh.initNode();
+  nh.subscribe(sub);
+  nh.advertise(rpm_pub);
+//  nh.advertise(Debug);
+//  nh.advertise(Odompub);
+//  nh.advertise(Sensorpub);
+  nh.advertise(irl_pub);
+  nh.advertise(irc_pub);
+  nh.advertise(irr_pub);
+  nh.advertise(sl_pub);
+  nh.advertise(sr_pub);
+  pinMode (irl, INPUT);
+  pinMode (irc, INPUT);
+  pinMode (irr, INPUT);
+  attachInterrupt(LEFT, LwheelSpeed, CHANGE);
+  attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
+  motorLeft.setSpeed(turnSpeedMin);
+  motorLeft.run(RELEASE);
+  motorRight.setSpeed(turnSpeedMin);
+  motorRight.run(RELEASE);
   ir_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
   ir_range_msg.field_of_view = 0.01;
   ir_range_msg.min_range = 0.1;
@@ -490,61 +508,23 @@ void setupSensorMsgs(){
   sonar_range_msg.max_range = 3; 
 }
 
-void setupRosTopics(){
-  nh.initNode();
-  nh.subscribe(sub);
-  nh.advertise(rpm_pub);
-  nh.advertise(Debug);
-  nh.advertise(Odompub);
-  nh.advertise(Sensorpub);
-  nh.advertise(irl_pub);
-  nh.advertise(irc_pub);
-  nh.advertise(irr_pub);
-  nh.advertise(sl_pub);
-  nh.advertise(sr_pub);  
-}
-
-void setup(){
-  Serial.begin(57600);
-  setupRosTopics();
-  pinMode (irl, INPUT);
-  pinMode (irc, INPUT);
-  pinMode (irr, INPUT);
-  attachInterrupt(LEFT, LwheelSpeed, CHANGE);
-  attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
-  motorLeft.setSpeed(turnSpeedMin);
-  motorLeft.run(RELEASE);
-  motorRight.setSpeed(turnSpeedMin);
-  motorRight.run(RELEASE);
-  setupSensorMsgs();
-}
-
 void loop(){
-  static unsigned long encTimer = 0;
-  static unsigned long sensTimer = 0;
   static unsigned long motorTimer = 0;
   unsigned long time = millis();
   nh.spinOnce();
 
-  if(lastMilli - sensTimer > sensInterval){
-    checkSensors();
-    sensTimer = time;
-  }
-
   if(lastMilli - motorTimer > motorInterval){
+    checkSensors();
     controlMotors();
-    motorTimer = time;
-  }
-
-  if(lastMilli - encTimer > odomInterval){
     handleOdometry(time-lastMilli);
-    encTimer = time;
+    motorTimer = time;
   }
 
   lastMilli = time;
   delay(1);
 }
 
+// TODO: less oscillating, different values per motor
 // TODO: implement max rpm tracking for encoder to prevent extra speed
 // TODO: use a custom message for odom - we are misusing Vector3Stamped and stufing left and right wheel into x and y and time into z
 // TODO: do not clear the encoder count buffers, store lat values and subtract for consistency
