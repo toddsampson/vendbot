@@ -23,7 +23,7 @@
 #define MOVEMENT_TIMEOUT 300
 #define turnSpeedMin 145
 #define turnSpeedMax 180
-#define moveSpeedMin 130
+#define moveSpeedMin 160
 #define moveSpeedMax 225
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
