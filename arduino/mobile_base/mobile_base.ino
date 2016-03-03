@@ -19,7 +19,8 @@
 #define SONAR_PERSONAL_SPACE 1050
 #define IR_CENTER_PERSONAL_SPACE 40
 #define IR_SIDE_PERSONAL_SPACE 30
-#define motorInterval 100
+#define MOTOR_INTERVAL 50
+#define MOVEMENT_TIMEOUT 300
 #define turnSpeedMin 145
 #define turnSpeedMax 180
 #define moveSpeedMin 170
@@ -40,6 +41,7 @@ float currZ = 0.0;
 float goalX = 0.0;
 float goalZ = 0.0;
 boolean running = false;
+boolean cb = false;
 int currSpeed = 0;
 int leftHeading = 0; //1 forward, 2 backward
 int rightHeading = 0; //1 forward, 2 backward
@@ -56,8 +58,8 @@ long prevCoder0 = 0;
 long prevCoder1 = 0;
 
 ros::NodeHandle  nh;
-//std_msgs::String debug_msg;
-//ros::Publisher Debug ("debug_bot", &debug_msg);
+std_msgs::String debug_msg;
+ros::Publisher Debug ("debug_bot", &debug_msg);
 //geometry_msgs::Twist twist_msg;
 //ros::Publisher Sensorpub ("sensor_debug", &twist_msg);
 //ros::Publisher Odompub ("odom_debug", &twist_msg);
@@ -74,16 +76,16 @@ ros::Publisher rpm_pub("rpm", &rpm_msg);
 void messageCb(const geometry_msgs::Twist& msg){
   goalX = msg.linear.x;
   goalZ = msg.angular.z;
-  lastMssgTime = millis();
-//  debug_msg.data = "RUNNING MSSG CALLBACK";
-//  Debug.publish(&debug_msg);
+  cb = true;
+  debug_msg.data = "RUNNING MSSG CALLBACK";
+  Debug.publish(&debug_msg);
 }
 
 int nextSpeed(int minSpeed, int maxSpeed){
   if(currSpeed == 0){
     return minSpeed;
   } else if(currSpeed < maxSpeed){
-    return currSpeed + 1;
+    return currSpeed + 10;
   }
   return currSpeed;
 }
@@ -91,31 +93,43 @@ int nextSpeed(int minSpeed, int maxSpeed){
 int speedBump(){
   int currLeftCnt = abs(coder0);
   int currRightCnt = abs(coder1);
-  if(currRightCnt == 0){
-    if(currLeftCnt > 1){
+  if(currRightCnt == 0 && currLeftCnt != 0){
+    if(currLeftCnt > 2){
       return -50;
+    } else if (currLeftCnt == 2) {
+      return -40;
     } else if (currLeftCnt == 1) {
-      return -35;
+      return -25;
     }
   }
-  if(currLeftCnt == 0){
-    if(currRightCnt > 1){
+  if(currLeftCnt == 0 && currRightCnt != 0){
+    if(currRightCnt > 2){
       return 50;
+    } else if (currRightCnt == 2) {
+      return 40;
     } else if (currRightCnt == 1) {
-      return 35;
+      return 25;
     }
   }
   float encCntRatio = currLeftCnt / currRightCnt;
   if(encCntRatio < 0.99){
     if(encCntRatio < 0.5){
       return 50;
+    } else if (encCntRatio < 0.7) {
+      return 40;
+    } else if (encCntRatio < 0.85) {
+      return 35;
     }
-    return 35;
+    return 25;
   } else if(encCntRatio > 1.01){
     if(encCntRatio > 1.5){
       return -50;
+    } else if (encCntRatio > 1.3) {
+      return -40;
+    } else if (encCntRatio > 1.15) {
+      return -35;
     }
-    return -35;
+    return -25;
   }
   return 0;
 }
@@ -141,8 +155,8 @@ int getRightSpeed(int correction){
 }
 
 void moveForward(){
-//  debug_msg.data = "MOVING FORWARD";
-//  Debug.publish(&debug_msg);
+  debug_msg.data = "MOVING FORWARD";
+  Debug.publish(&debug_msg);
   running = true;
   leftHeading = 1;
   rightHeading = 1;
@@ -200,8 +214,8 @@ void turnRight(){
 }
 
 void stopMovement(){
-//  debug_msg.data = "MOVEMENT STOPPED";
-//  Debug.publish(&debug_msg);
+  debug_msg.data = "MOVEMENT STOPPED";
+  Debug.publish(&debug_msg);
   motorLeft.run(RELEASE);
   motorRight.run(RELEASE);
   running = false;
@@ -344,25 +358,22 @@ void publishSonar(float sLeft, float sRight){
 }
 
 void checkForBlocks(float sLeft, float sRight, float dLeft, float dCenter, float dRight){
-  if(sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight)){
-//    if(forwardBlocked == 0){
-//      debug_msg.data = "BLOCKING FORWARD MOTION";
-//      Debug.publish(&debug_msg);
-//    }
+  bool blocked = sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight);
+  if(blocked){
+    debug_msg.data = "BLOCKING FORWARD MOTION";
+    Debug.publish(&debug_msg);
     forwardBlocked = 1;    
   } else {
-//    if(forwardBlocked == 1){
 //      debug_msg.data = "FORWARD MOTION UNBLOCKED";
 //      Debug.publish(&debug_msg); 
-//    }
     forwardBlocked = 0;
   }
 
-  if(goalX > 0.1 && (sensorBlocked(sLeft, sRight, dLeft, dCenter, dRight))){
+  if(blocked && goalX > 0.1){
     goalX = 0;
     goalZ = 0;
-//    debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
-//    Debug.publish(&debug_msg); 
+    debug_msg.data = "SHOULD STOP FORWARD MOTION by setting goal velocities to 0";
+    Debug.publish(&debug_msg); 
   }
 }
 
@@ -381,6 +392,10 @@ void checkSensors(){
 
 void controlMotors(){
   if(goalX != currX || goalZ != currZ || goalX > 0.1 || goalX < -0.1 || goalZ > 0.1 || goalZ < -0.1){
+    if(cb == true){
+      lastMssgTime = millis();
+      cb = false;
+    }
     currX = goalX;  // later we will slowly ramp curr up towards goal
     currZ = goalZ;  // and use an accel method to determine speed to set
     if(currX > 0.1 || currX < -0.1 || currZ > 0.1 || currZ < -0.1){
@@ -402,9 +417,9 @@ void controlMotors(){
     }
   }
 //  debugSensors(millis()/1000, lastMssgTime/1000,(millis() - lastMssgTime)/1000,0,0);  
-  if((millis() - lastMssgTime) > 500){
-//    debug_msg.data = "STOPPING MOVEMENT DUE TO LASTMSSGTIME TIMEOUT";
-//    Debug.publish(&debug_msg);    
+  if((millis() - lastMssgTime) > MOVEMENT_TIMEOUT){
+    debug_msg.data = "STOPPING MOVEMENT DUE TO LASTMSSGTIME TIMEOUT";
+    Debug.publish(&debug_msg);    
     goalX = 0;
     goalZ = 0;
   }  
@@ -481,7 +496,7 @@ void setup(){
   nh.initNode();
   nh.subscribe(sub);
   nh.advertise(rpm_pub);
-//  nh.advertise(Debug);
+  nh.advertise(Debug);
 //  nh.advertise(Odompub);
 //  nh.advertise(Sensorpub);
   nh.advertise(irl_pub);
@@ -513,7 +528,7 @@ void loop(){
   unsigned long time = millis();
   nh.spinOnce();
 
-  if(lastMilli - motorTimer > motorInterval){
+  if(lastMilli - motorTimer > MOTOR_INTERVAL){
     checkSensors();
     controlMotors();
     handleOdometry(time-lastMilli);
@@ -524,6 +539,9 @@ void loop(){
   delay(1);
 }
 
+// TODO: try turning off all the sensor stuff
+// TODO: try spinning the nh more often
+// TODO: have a max rpm set and use that to tune motor values
 // TODO: less oscillating, different values per motor
 // TODO: implement max rpm tracking for encoder to prevent extra speed
 // TODO: use a custom message for odom - we are misusing Vector3Stamped and stufing left and right wheel into x and y and time into z
