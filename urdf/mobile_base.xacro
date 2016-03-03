@@ -23,28 +23,36 @@
     </visual>
   </link>
 
-  <!-- Base platform -->
-  <link name="platform">
-    <visual>
-      <geometry>
-        <box size="${platform_l} ${platform_w} ${platform_h}"/>
-      </geometry>
-      <material name="white">
-        <color rgba="1 1 1 1" />
-      </material>
-    </visual>
-  </link>
-  <joint name="platform_joint" type="fixed">
-    <parent link="base_link" />
-    <child link="platform" />
-    <origin xyz="0 0 ${wheel_r + wheel_h_offset}" rpy="0 0 0" />
-  </joint>
+  <!-- Bot platforms -->
+  <xacro:macro name="platform" params="pos">
+    <link name="platform_${pos}">
+      <visual>
+        <geometry>
+          <box size="${platform_l} ${platform_w} ${platform_h}"/>
+        </geometry>
+        <material name="white">
+          <color rgba="1 1 1 1" />
+        </material>
+      </visual>
+    </link>
+  </xacro:macro>
+  <xacro:platform pos="base" />
+  <xacro:platform pos="upper" />
+  <xacro:macro name="platform_joint" params="pos xyz">
+    <joint name="platform_joint_${pos}" type="fixed">
+      <parent link="base_link" />
+      <child link="platform_${pos}" />
+      <origin xyz="${xyz}" rpy="0 0 0" />
+    </joint>
+  </xacro:macro>
+  <xacro:platform_joint pos="base" xyz="0 0 ${wheel_r + wheel_h_offset}" />
+  <xacro:platform_joint pos="upper" xyz="0 0 ${wheel_r + wheel_h_offset + 0.08}" />
 
   <!-- Stereo Camera -->
   <link name="camera_link">
     <visual>
       <geometry>
-        <box size="0.094 0.1168 0.071 "/>
+        <box size="0.020 0.075 0.015 "/>
       </geometry>
       <material name="black" />
     </visual>
@@ -52,7 +60,7 @@
   <joint name="camera_base_link" type="fixed">
     <parent link="base_link" />
     <child link="camera_link" />
-    <origin xyz="${platform_l / 2} 0 ${wheel_r + wheel_h_offset + 0.080}" rpy="0 0 0" />
+    <origin xyz="${platform_l / 2 + 0.01} 0 ${wheel_r + wheel_h_offset + 0.08}" rpy="0 0 0" />
   </joint>
 
 <!-- Differential Drive Wheels -->
@@ -108,7 +116,7 @@
   <xacro:ir pos="right" />
   <xacro:macro name="sensor_joint" params="sensor pos rpy xyz">
     <joint name="${sensor}_${pos}_joint" type="fixed">
-      <parent link="platform" />
+      <parent link="platform_base" />
       <child link="${sensor}_${pos}" />
       <origin rpy="${rpy}" xyz="${xyz}" />
     </joint>
