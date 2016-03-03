@@ -145,22 +145,22 @@ console.log('right turn called AND WAS executed');
 
   $('#actions .move_forward').on('mousedown', function() {
 console.log('mousedown forward');
-    $movementLoop = setInterval(move_forward, 15);
+    $movementLoop = setInterval(move_forward, 100);
   });
 
   $('#actions .move_backward').on('mousedown', function() {
 console.log('mousedown backward');
-    $backLoop = setInterval(move_backward, 15);
+    $backLoop = setInterval(move_backward, 100);
   });
 
   $('#actions .turn_left').on('mousedown', function() {
 console.log('mousedown left');
-    $leftLoop = setInterval(turn_left, 15);
+    $leftLoop = setInterval(turn_left, 100);
   });
   
   $('#actions .turn_right').on('mousedown', function() {
 console.log('mousedown right');
-    $rightLoop = setInterval(turn_right, 15);
+    $rightLoop = setInterval(turn_right, 100);
   });
 
   $('body').on('mouseup', function() {
