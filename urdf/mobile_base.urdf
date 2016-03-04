@@ -66,12 +66,12 @@
   <joint name="camera_joint_left" type="fixed">
     <parent link="base_link"/>
     <child link="left"/>
-    <origin rpy="0 0 0" xyz="0.1116 -0.053 0.0978"/>
+    <origin rpy="-1.5707963268 0 -1.5707963268" xyz="0.1116 -0.053 0.0978"/>
   </joint>
   <joint name="camera_joint_right" type="fixed">
     <parent link="base_link"/>
     <child link="right"/>
-    <origin rpy="0 0 0" xyz="0.1116 0.053 0.0978"/>
+    <origin rpy="-1.5707963268 0 -1.5707963268" xyz="0.1116 0.053 0.0978"/>
   </joint>
   <!-- Differential Drive Wheels -->
   <link name="wheel_right">

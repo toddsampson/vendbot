@@ -65,7 +65,7 @@
     <joint name="camera_joint_${pos}" type="fixed">
       <parent link="base_link" />
       <child link="${pos}" />
-      <origin xyz="${xyz}" rpy="0 0 0" />
+      <origin xyz="${xyz}" rpy="-${pi/2} 0 -${pi/2}" />
     </joint>
   </xacro:macro>
   <xacro:camera_joint pos="left" xyz="${platform_l / 2 + 0.01} -0.053 ${wheel_r + wheel_h_offset + 0.08}" />
