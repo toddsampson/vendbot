@@ -76,7 +76,7 @@ ros::Publisher rpm_pub("rpm", &rpm_msg);
 void messageCb(const geometry_msgs::Twist& msg){
   float msgX = msg.linear.x;
   float msgZ = msg.angular.z;
-  if(msgX >= msgZ && (msgX > 0.1 || msgX < -0.1)){
+  if(abs(msgX) >= abs(msgZ) && (msgX > 0.1 || msgX < -0.1)){
     goalX = msgX;
     goalZ = 0;
   } else {
