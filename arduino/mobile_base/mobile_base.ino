@@ -20,7 +20,7 @@
 #define IR_CENTER_PERSONAL_SPACE 40
 #define IR_SIDE_PERSONAL_SPACE 30
 #define MOTOR_INTERVAL 50
-#define MOVEMENT_TIMEOUT 300
+#define MOVEMENT_TIMEOUT 200
 #define turnSpeedMin 145
 #define turnSpeedMax 180
 #define moveSpeedMin 160
@@ -337,7 +337,8 @@ void publishIR(float dLeft, float dCenter, float dRight){
   ir_range_msg.header.frame_id =  irr_frameid;
   ir_range_msg.range = dRight / 100;
   ir_range_msg.header.stamp = nh.now();
-  irr_pub.publish(&ir_range_msg);  
+  irr_pub.publish(&ir_range_msg);
+  nh.spinOnce();
 }
 
 void publishSonar(float sLeft, float sRight){
@@ -355,6 +356,7 @@ void publishSonar(float sLeft, float sRight){
   sonar_range_msg.range = sRight;
   sonar_range_msg.header.stamp = nh.now();
   sr_pub.publish(&sonar_range_msg);
+  nh.spinOnce();
 }
 
 void checkForBlocks(float sLeft, float sRight, float dLeft, float dCenter, float dRight){
@@ -440,7 +442,8 @@ void publishOdom(double vel_lx, double vel_az, unsigned long time){
   rpm_msg.vector.x = vel_lx;
   rpm_msg.vector.y = vel_az;
   rpm_msg.vector.z = double(time)/1000;
-  rpm_pub.publish(&rpm_msg);  
+  rpm_pub.publish(&rpm_msg);
+  nh.spinOnce(); 
 }
 
 //double moveVelLx(long speed0, long speed1){
@@ -492,7 +495,6 @@ void handleOdometry(unsigned long time){
 ros::Subscriber<geometry_msgs::Twist> sub("cmd_vel", messageCb);
 
 void setup(){
-  Serial.begin(57600);
   nh.initNode();
   nh.subscribe(sub);
   nh.advertise(rpm_pub);
