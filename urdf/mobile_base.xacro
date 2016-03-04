@@ -49,19 +49,27 @@
   <xacro:platform_joint pos="upper" xyz="0 0 ${wheel_r + wheel_h_offset + 0.08}" />
 
   <!-- Stereo Camera -->
-  <link name="camera_link">
-    <visual>
-      <geometry>
-        <box size="0.020 0.075 0.015 "/>
-      </geometry>
-      <material name="black" />
-    </visual>
-  </link>
-  <joint name="camera_base_link" type="fixed">
-    <parent link="base_link" />
-    <child link="camera_link" />
-    <origin xyz="${platform_l / 2 + 0.01} 0 ${wheel_r + wheel_h_offset + 0.08}" rpy="0 0 0" />
-  </joint>
+  <xacro:macro name="camera" params="pos">
+    <link name="${pos}">
+      <visual>
+        <geometry>
+          <box size="0.020 0.015 0.015 "/>
+        </geometry>
+        <material name="black" />
+      </visual>
+    </link>
+  </xacro:macro>
+  <xacro:camera pos="left" />
+  <xacro:camera pos="right" />
+  <xacro:macro name="camera_joint" params="pos xyz">
+    <joint name="camera_joint_${pos}" type="fixed">
+      <parent link="base_link" />
+      <child link="${pos}" />
+      <origin xyz="${xyz}" rpy="0 0 0" />
+    </joint>
+  </xacro:macro>
+  <xacro:camera_joint pos="left" xyz="${platform_l / 2 + 0.01} -0.053 ${wheel_r + wheel_h_offset + 0.08}" />
+  <xacro:camera_joint pos="right" xyz="${platform_l / 2 + 0.01} 0.053 ${wheel_r + wheel_h_offset + 0.08}" />
 
 <!-- Differential Drive Wheels -->
   <xacro:macro name="wheel" params="pos rpy">

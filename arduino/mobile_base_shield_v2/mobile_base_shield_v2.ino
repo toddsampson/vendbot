@@ -7,7 +7,9 @@
 #include <sensor_msgs/Range.h>
 //#include <tf/transform_broadcaster.h>
 //#include <nav_msgs/Odometry.h>
-#include <AFMotor.h>
+#include <Wire.h>
+#include <Adafruit_MotorShield.h>
+#include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <NewPing.h>
 #include <SharpIR.h>
 
@@ -23,7 +25,7 @@
 #define MOVEMENT_TIMEOUT 300
 #define turnSpeedMin 145
 #define turnSpeedMax 180
-#define moveSpeedMin 160
+#define moveSpeedMin 130
 #define moveSpeedMax 225
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
@@ -32,9 +34,10 @@ NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
 SharpIR ir_left(irl, 25, 93, model);
 SharpIR ir_center(irc, 25, 93, model);
-SharpIR ir_right(irr, 25, 93, model); 
-AF_DCMotor motorLeft(3); //left wheel
-AF_DCMotor motorRight(1); //right wheel
+SharpIR ir_right(irr, 25, 93, model);
+Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61); 
+Adafruit_DCMotor *motorLeft = AFMS.getMotor(3); //left wheel
+Adafruit_DCMotor *motorRight = AFMS.getMotor(1); //right wheel
 
 float currX = 0.0;
 float currZ = 0.0;
@@ -164,10 +167,10 @@ void moveForward(){
   int correction = speedBump();
   int leftSpeed = getLeftSpeed(correction);
   int rightSpeed = getRightSpeed(correction);
-  motorLeft.run(FORWARD);
-  motorLeft.setSpeed(leftSpeed);
-  motorRight.run(FORWARD);
-  motorRight.setSpeed(rightSpeed);  
+  motorLeft->run(FORWARD);
+  motorLeft->setSpeed(leftSpeed);
+  motorRight->run(FORWARD);
+  motorRight->setSpeed(rightSpeed);  
 }
 
 void moveBackward(){
@@ -181,10 +184,10 @@ void moveBackward(){
   int leftSpeed = getLeftSpeed(correction);
   int rightSpeed = getRightSpeed(correction);
   //debugSensors(currSpeed, correction, 0, leftSpeed, rightSpeed);
-  motorLeft.run(BACKWARD);
-  motorLeft.setSpeed(currSpeed);
-  motorRight.run(BACKWARD);
-  motorRight.setSpeed(currSpeed);
+  motorLeft->run(BACKWARD);
+  motorLeft->setSpeed(currSpeed);
+  motorRight->run(BACKWARD);
+  motorRight->setSpeed(currSpeed);
 }
 
 void turnLeft(){
@@ -194,10 +197,10 @@ void turnLeft(){
   leftHeading = 2;
   rightHeading = 1;
   currSpeed = nextSpeed(turnSpeedMin, turnSpeedMax);
-  motorLeft.run(BACKWARD);
-  motorLeft.setSpeed(currSpeed);
-  motorRight.run(FORWARD);
-  motorRight.setSpeed(currSpeed);
+  motorLeft->run(BACKWARD);
+  motorLeft->setSpeed(currSpeed);
+  motorRight->run(FORWARD);
+  motorRight->setSpeed(currSpeed);
 }
 
 void turnRight(){
@@ -207,17 +210,17 @@ void turnRight(){
   leftHeading = 1;
   rightHeading = 2;
   currSpeed = nextSpeed(turnSpeedMin, turnSpeedMax);
-  motorLeft.run(FORWARD);
-  motorLeft.setSpeed(currSpeed);
-  motorRight.run(BACKWARD);
-  motorRight.setSpeed(currSpeed);
+  motorLeft->run(FORWARD);
+  motorLeft->setSpeed(currSpeed);
+  motorRight->run(BACKWARD);
+  motorRight->setSpeed(currSpeed);
 }
 
 void stopMovement(){
   debug_msg.data = "MOVEMENT STOPPED";
   Debug.publish(&debug_msg);
-  motorLeft.run(RELEASE);
-  motorRight.run(RELEASE);
+  motorLeft->run(RELEASE);
+  motorRight->run(RELEASE);
   running = false;
   currX = 0;
   currZ = 0;
@@ -509,10 +512,11 @@ void setup(){
   pinMode (irr, INPUT);
   attachInterrupt(LEFT, LwheelSpeed, CHANGE);
   attachInterrupt(RIGHT, RwheelSpeed, CHANGE);
-  motorLeft.setSpeed(turnSpeedMin);
-  motorLeft.run(RELEASE);
-  motorRight.setSpeed(turnSpeedMin);
-  motorRight.run(RELEASE);
+  AFMS.begin();
+  motorLeft->setSpeed(turnSpeedMin);
+  motorLeft->run(RELEASE);
+  motorRight->setSpeed(turnSpeedMin);
+  motorRight->run(RELEASE);
   ir_range_msg.radiation_type = sensor_msgs::Range::INFRARED;
   ir_range_msg.field_of_view = 0.01;
   ir_range_msg.min_range = 0.1;
