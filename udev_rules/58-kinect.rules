@@ -1,0 +1,4 @@
+SUBSYSTEM=="usb", KERNEL=="ttyACM[0-9]*", ATTRS{idProduct}=="02c4", ATTRS{idVendor}=="045e", GROUP="dialout"
+SUBSYSTEM=="usb", KERNEL=="ttyACM[0-9]*", ATTRS{idProduct}=="02be", ATTRS{idVendor}=="045e", GROUP="dialout"
+SUBSYSTEM=="usb", KERNEL=="ttyACM[0-9]*", ATTRS{idProduct}=="02bf", ATTRS{idVendor}=="045e", GROUP="dialout"
+SUBSYSTEM=="usb", KERNEL=="ttyACM[0-9]*", ATTRS{idProduct}=="02c2", ATTRS{idVendor}=="045e", GROUP="dialout"
