@@ -74,12 +74,14 @@ geometry_msgs::Vector3Stamped rpm_msg;
 ros::Publisher rpm_pub("rpm", &rpm_msg);
 
 void messageCb(const geometry_msgs::Twist& msg){
-  goalX = msg.linear.x;
-  if(goalX > 0.1 || goalX < -0.1){
+  float msgX = msg.linear.x;
+  float msgZ = msg.angular.z;
+  if(msgX >= msgZ && (msgX > 0.1 || msgX < -0.1)){
+    goalX = msgX;
     goalZ = 0;
   } else {
-    goalZ = msg.angular.z;
     goalX = 0;
+    goalZ = msgZ;
   }
   cb = true;
   debug_msg.data = "RUNNING MSSG CALLBACK";
