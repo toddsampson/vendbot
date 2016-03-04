@@ -1,6 +1,8 @@
 <launch>
   <arg name="mobile_base_port" default="/dev/ttyACM0" /> 
   <arg name="rviz" default="false" />
+  <arg name="joy" default="false" />
+  <arg name="joystick" default="/dev/input/js0" /> 
 
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
 
@@ -14,5 +16,13 @@
   <node pkg="vendbot" type="base_controller" name="base_controller" />
   
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find vendbot)/vendbot.rviz" if="$(arg rviz)" /> 
+
+    <group if="$(arg joy)">
+    <node name="joy_node" pkg="joy" type="joy_node" output="screen">
+      <param name="joy_node/dev" value="$(arg joystick)" />
+    </node>
+    <node name="teleop_node" pkg="teleop_twist_joy" type="teleop_node" output="screen" />
+  </group>
+
 </launch>
 

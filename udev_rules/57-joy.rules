@@ -1,0 +1,2 @@
+SUBSYSTEM=="usb", KERNEL=="js*", ATTRS{idProduct}=="c216", ATTRS{idVendor}=="046d", GROUP="dialout"
+
