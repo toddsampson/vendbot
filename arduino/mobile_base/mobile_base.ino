@@ -75,7 +75,12 @@ ros::Publisher rpm_pub("rpm", &rpm_msg);
 
 void messageCb(const geometry_msgs::Twist& msg){
   goalX = msg.linear.x;
-  goalZ = msg.angular.z;
+  if(goalX > 0.1 || goalX < -0.1){
+    goalZ = 0;
+  } else {
+    goalZ = msg.angular.z;
+    goalX = 0;
+  }
   cb = true;
   debug_msg.data = "RUNNING MSSG CALLBACK";
   Debug.publish(&debug_msg);
