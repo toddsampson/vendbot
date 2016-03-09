@@ -26,8 +26,8 @@
 #define moveSpeedMin 140
 #define moveSpeedMax 255
 #define moveBackSpeedMax 235
-#define LEFT digitalPinToInterrupt(20)
-#define RIGHT digitalPinToInterrupt(21)
+#define LEFT digitalPinToInterrupt(21)
+#define RIGHT digitalPinToInterrupt(20)
 
 NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
@@ -60,7 +60,10 @@ long currCoder1 = 0;
 long prevCoder0 = 0;
 long prevCoder1 = 0;
 long totalDiffCnt = 0;
+long totalDiffPercent = 0;
 long totalDiffs = 0;
+long totalCoder0 = coder0;  // this method of holding the encoder value
+long totalCoder1 = coder1;  // prevents us from losing any ticks
 
 ros::NodeHandle  nh;
 std_msgs::String debug_msg;
@@ -111,26 +114,27 @@ int speedBump(){
 //  } else if (currLeftCnt > CurrRightCnt){
 //    diffPercent = (currRightCnt - currLeftCnt)/(double)currRightCnt
 //  }
-
-  
   int diffCnt = currLeftCnt - currRightCnt;
   double avgDiff = 0;
   if(diffCnt == 0){
     //return 0;
   } else {
     totalDiffCnt += diffCnt;
-    totalDiffs += 1;  
+    if(diffCnt > 0){
+      totalDiffs += 1;
+    } else {
+      totalDiffs -= 1;  
+    }
   }
-  avgDiff = (double)totalDiffCnt/(double)totalDiffs;
+  avgDiff = ((double)totalDiffCnt/20.0)/abs((double)totalDiffs);
+  debugOdom(currLeftCnt, currRightCnt, diffCnt, totalDiffCnt, totalDiffs, (currSpeed*abs(avgDiff)));
   if(totalDiffs < 10 || avgDiff == 0){
     return 0;
   }
-  if (avgDiff > 0){
-    //left turned more
-    return (110*avgDiff);
+  if (currLeftCnt > currRightCnt){
+    return (currSpeed*abs(avgDiff));
   } else {
-    //right turned more, return positive bump
-    return (-110*avgDiff);
+    return (-currSpeed*abs(avgDiff));
   }
 }
 
@@ -164,7 +168,7 @@ void moveForward(){
   int correction = speedBump();
   int leftSpeed = getLeftSpeed(correction, moveSpeedMax);
   int rightSpeed = getRightSpeed(correction, moveSpeedMax);
-  debugOdom(leftSpeed, rightSpeed, correction, currSpeed, totalDiffCnt, totalDiffs);
+//  debugOdom(leftSpeed, rightSpeed, correction, currSpeed, totalDiffCnt, totalDiffs);
   motorLeft.run(FORWARD);
   motorLeft.setSpeed(leftSpeed);
   motorRight.run(FORWARD);
@@ -465,8 +469,8 @@ void publishOdom(double vel_lx, double vel_az, unsigned long time){
 void handleOdometry(unsigned long time){
   double vel_lx = 0; // odom linear x velocity
   double vel_az = 0; // odom angular z velocity
-  long totalCoder0 = coder0;  // this method of holding the encoder value
-  long totalCoder1 = coder1;  // prevents us from losing any ticks
+  totalCoder0 = coder0;  // this method of holding the encoder value
+  totalCoder1 = coder1;  // prevents us from losing any ticks
   currCoder0 = totalCoder0 - prevCoder0;
   currCoder1 = totalCoder1 - prevCoder1;
   prevCoder0 = totalCoder0;
