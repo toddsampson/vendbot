@@ -16,15 +16,16 @@
 #define irr A8
 #define model 20150
 #define MAX_DISTANCE 200
-#define SONAR_PERSONAL_SPACE 1050
-#define IR_CENTER_PERSONAL_SPACE 40
-#define IR_SIDE_PERSONAL_SPACE 30
-#define MOTOR_INTERVAL 50
+#define SONAR_PERSONAL_SPACE 1250
+#define IR_CENTER_PERSONAL_SPACE 50
+#define IR_SIDE_PERSONAL_SPACE 40
+#define MOTOR_INTERVAL 100
 #define MOVEMENT_TIMEOUT 200
 #define turnSpeedMin 145
 #define turnSpeedMax 180
-#define moveSpeedMin 160
-#define moveSpeedMax 225
+#define moveSpeedMin 140
+#define moveSpeedMax 255
+#define moveBackSpeedMax 235
 #define LEFT digitalPinToInterrupt(20)
 #define RIGHT digitalPinToInterrupt(21)
 
@@ -54,15 +55,19 @@ int gearRatio =  1;
 unsigned long lastMilli = 0;
 volatile long coder0 = 0;  // rev counter
 volatile long coder1 = 0;
+long currCoder0 = 0;
+long currCoder1 = 0;
 long prevCoder0 = 0;
 long prevCoder1 = 0;
+long totalDiffCnt = 0;
+long totalDiffs = 0;
 
 ros::NodeHandle  nh;
 std_msgs::String debug_msg;
 ros::Publisher Debug ("debug_bot", &debug_msg);
-//geometry_msgs::Twist twist_msg;
+geometry_msgs::Twist twist_msg;
 //ros::Publisher Sensorpub ("sensor_debug", &twist_msg);
-//ros::Publisher Odompub ("odom_debug", &twist_msg);
+ros::Publisher Odompub ("odom_debug", &twist_msg);
 sensor_msgs::Range ir_range_msg;
 ros::Publisher irl_pub( "ir_left_depth_frame", &ir_range_msg);
 ros::Publisher irc_pub( "ir_center_depth_frame", &ir_range_msg);
@@ -98,63 +103,51 @@ int nextSpeed(int minSpeed, int maxSpeed){
 }
 
 int speedBump(){
-  int currLeftCnt = abs(coder0);
-  int currRightCnt = abs(coder1);
-  if(currRightCnt == 0 && currLeftCnt != 0){
-    if(currLeftCnt > 2){
-      return -50;
-    } else if (currLeftCnt == 2) {
-      return -40;
-    } else if (currLeftCnt == 1) {
-      return -25;
-    }
+  int currLeftCnt = abs(currCoder0);
+  int currRightCnt = abs(currCoder1);
+//  double diffPercent = 0.0;
+//  if(currRightCnt > currLeftCnt){
+//    diffPercent = (currRightCnt - currLeftCnt)/(double)currRightCnt
+//  } else if (currLeftCnt > CurrRightCnt){
+//    diffPercent = (currRightCnt - currLeftCnt)/(double)currRightCnt
+//  }
+
+  
+  int diffCnt = currLeftCnt - currRightCnt;
+  double avgDiff = 0;
+  if(diffCnt == 0){
+    //return 0;
+  } else {
+    totalDiffCnt += diffCnt;
+    totalDiffs += 1;  
   }
-  if(currLeftCnt == 0 && currRightCnt != 0){
-    if(currRightCnt > 2){
-      return 50;
-    } else if (currRightCnt == 2) {
-      return 40;
-    } else if (currRightCnt == 1) {
-      return 25;
-    }
+  avgDiff = (double)totalDiffCnt/(double)totalDiffs;
+  if(totalDiffs < 10 || avgDiff == 0){
+    return 0;
   }
-  float encCntRatio = currLeftCnt / currRightCnt;
-  if(encCntRatio < 0.99){
-    if(encCntRatio < 0.5){
-      return 50;
-    } else if (encCntRatio < 0.7) {
-      return 40;
-    } else if (encCntRatio < 0.85) {
-      return 35;
-    }
-    return 25;
-  } else if(encCntRatio > 1.01){
-    if(encCntRatio > 1.5){
-      return -50;
-    } else if (encCntRatio > 1.3) {
-      return -40;
-    } else if (encCntRatio > 1.15) {
-      return -35;
-    }
-    return -25;
+  if (avgDiff > 0){
+    //left turned more
+    return (110*avgDiff);
+  } else {
+    //right turned more, return positive bump
+    return (-110*avgDiff);
   }
-  return 0;
 }
 
-int getLeftSpeed(int correction){
+int getLeftSpeed(int correction, int moveMax){
   int newSpeed = currSpeed + correction;
-  if(newSpeed > moveSpeedMax){
-    return moveSpeedMax;
+  if(newSpeed > moveMax){
+    return moveMax;
   } else if(newSpeed < moveSpeedMin){
     return moveSpeedMin;
   }
   return newSpeed;
 }
 
-int getRightSpeed(int correction){
+int getRightSpeed(int correction, int moveMax){
   int newSpeed = currSpeed - correction;
-  if(newSpeed > moveSpeedMax){
-    return moveSpeedMax;
+  if(newSpeed > moveMax){
+    return moveMax;
   } else if(newSpeed < moveSpeedMin){
     return moveSpeedMin;
   }
@@ -162,15 +155,16 @@ int getRightSpeed(int correction){
 }
 
 void moveForward(){
-  debug_msg.data = "MOVING FORWARD";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "MOVING FORWARD";
+//  Debug.publish(&debug_msg);
   running = true;
   leftHeading = 1;
   rightHeading = 1;
   currSpeed = nextSpeed(moveSpeedMin, moveSpeedMax);
   int correction = speedBump();
-  int leftSpeed = getLeftSpeed(correction);
-  int rightSpeed = getRightSpeed(correction);
+  int leftSpeed = getLeftSpeed(correction, moveSpeedMax);
+  int rightSpeed = getRightSpeed(correction, moveSpeedMax);
+  debugOdom(leftSpeed, rightSpeed, correction, currSpeed, totalDiffCnt, totalDiffs);
   motorLeft.run(FORWARD);
   motorLeft.setSpeed(leftSpeed);
   motorRight.run(FORWARD);
@@ -183,11 +177,11 @@ void moveBackward(){
   running = true;
   leftHeading = 2;
   rightHeading = 2;
-  currSpeed = nextSpeed(moveSpeedMin, moveSpeedMax);
+  currSpeed = nextSpeed(moveSpeedMin, moveBackSpeedMax);
   int correction = speedBump();
-  int leftSpeed = getLeftSpeed(correction);
-  int rightSpeed = getRightSpeed(correction);
-  //debugSensors(currSpeed, correction, 0, leftSpeed, rightSpeed);
+  int leftSpeed = getLeftSpeed(correction, moveBackSpeedMax);
+  int rightSpeed = getRightSpeed(correction, moveBackSpeedMax);
+  debugOdom(leftSpeed, rightSpeed, correction, currSpeed, totalDiffCnt, totalDiffs);
   motorLeft.run(BACKWARD);
   motorLeft.setSpeed(currSpeed);
   motorRight.run(BACKWARD);
@@ -221,8 +215,8 @@ void turnRight(){
 }
 
 void stopMovement(){
-  debug_msg.data = "MOVEMENT STOPPED";
-  Debug.publish(&debug_msg);
+//  debug_msg.data = "MOVEMENT STOPPED";
+//  Debug.publish(&debug_msg);
   motorLeft.run(RELEASE);
   motorRight.run(RELEASE);
   running = false;
@@ -434,15 +428,15 @@ void controlMotors(){
   }  
 }
 
-//void debugOdom(double vel_lx, double vel_az, long currCoder0, long currCoder1){
-//  twist_msg.linear.x = vel_lx;
-//  twist_msg.linear.y = currCoder0;
-//  twist_msg.linear.z = currCoder1;
-//  twist_msg.angular.x = leftHeading;
-//  twist_msg.angular.y = rightHeading;
-//  twist_msg.angular.z = vel_az;
-//  Odompub.publish(&twist_msg);
-//}
+void debugOdom(double vel_lx, double vel_az, long currCoder0, long currCoder1, long rpm0, long rpm1){
+  twist_msg.linear.x = vel_lx;
+  twist_msg.linear.y = vel_az;
+  twist_msg.linear.z = currCoder0;
+  twist_msg.angular.x = currCoder1;
+  twist_msg.angular.y = rpm0;
+  twist_msg.angular.z = rpm1;
+  Odompub.publish(&twist_msg);
+}
 
 void publishOdom(double vel_lx, double vel_az, unsigned long time){
   rpm_msg.header.stamp = nh.now();
@@ -473,11 +467,17 @@ void handleOdometry(unsigned long time){
   double vel_az = 0; // odom angular z velocity
   long totalCoder0 = coder0;  // this method of holding the encoder value
   long totalCoder1 = coder1;  // prevents us from losing any ticks
-  long currCoder0 = totalCoder0 - prevCoder0;
-  long currCoder1 = totalCoder1 - prevCoder1;
+  currCoder0 = totalCoder0 - prevCoder0;
+  currCoder1 = totalCoder1 - prevCoder1;
   prevCoder0 = totalCoder0;
   prevCoder1 = totalCoder1;
 
+  double elapsed = time/(double)1000;
+  double tickRatio0 = (double)currCoder0/encoderTicks;
+  double tickRatio1 = (double)currCoder1/encoderTicks;
+  double rpm0 = (60*(tickRatio0))/(double)elapsed;
+  double rpm1 = (60*(tickRatio1))/(double)elapsed;
+  
   vel_lx = double((currCoder0)*60*1000)/double(time*encoderTicks*gearRatio);
   vel_az = double((currCoder1)*60*1000)/double(time*encoderTicks*gearRatio);
   
@@ -495,7 +495,7 @@ void handleOdometry(unsigned long time){
 //    vel_az = rightVelAz(currCoder0, currCoder1);
 //  }
 
-//  debugOdom(vel_lx, vel_az, currCoder0, currCoder1);
+  //debugOdom(tickRatio0, tickRatio1, currCoder0, currCoder1, rpm0, rpm1);
   publishOdom(vel_lx, vel_az, time);
 }
 
@@ -506,7 +506,7 @@ void setup(){
   nh.subscribe(sub);
   nh.advertise(rpm_pub);
   nh.advertise(Debug);
-//  nh.advertise(Odompub);
+  nh.advertise(Odompub);
 //  nh.advertise(Sensorpub);
   nh.advertise(irl_pub);
   nh.advertise(irc_pub);
@@ -538,9 +538,9 @@ void loop(){
   nh.spinOnce();
 
   if(lastMilli - motorTimer > MOTOR_INTERVAL){
-    checkSensors();
+    handleOdometry(time-motorTimer);
+    checkSensors();    
     controlMotors();
-    handleOdometry(time-lastMilli);
     motorTimer = time;
   }
 
