@@ -19,15 +19,18 @@
 #define SONAR_PERSONAL_SPACE 1250
 #define IR_CENTER_PERSONAL_SPACE 50
 #define IR_SIDE_PERSONAL_SPACE 40
-#define MOTOR_INTERVAL 100
+#define MOTOR_INTERVAL 50
 #define MOVEMENT_TIMEOUT 200
 #define turnSpeedMin 145
 #define turnSpeedMax 180
 #define moveSpeedMin 140
-#define moveSpeedMax 255
+#define moveSpeedStart 165
+#define moveSpeedMax 245
+#define moveSpeedMaxL 255
+#define moveSpeedMaxR 220
 #define moveBackSpeedMax 235
-#define LEFT digitalPinToInterrupt(20)
-#define RIGHT digitalPinToInterrupt(21)
+#define LEFT digitalPinToInterrupt(21)
+#define RIGHT digitalPinToInterrupt(20)
 
 NewPing sonar_left(24, 24, MAX_DISTANCE);
 NewPing sonar_right(25, 25, MAX_DISTANCE);
@@ -59,6 +62,8 @@ long currCoder0 = 0;
 long currCoder1 = 0;
 long prevCoder0 = 0;
 long prevCoder1 = 0;
+long totalCoder0 = 0;
+long totalCoder1 = 0;
 long totalDiffCnt = 0;
 long totalDiffs = 0;
 
@@ -127,10 +132,10 @@ int speedBump(){
   }
   if (avgDiff > 0){
     //left turned more
-    return (110*avgDiff);
+    return (100*avgDiff);
   } else {
     //right turned more, return positive bump
-    return (-110*avgDiff);
+    return (-100*avgDiff);
   }
 }
 
@@ -160,10 +165,10 @@ void moveForward(){
   running = true;
   leftHeading = 1;
   rightHeading = 1;
-  currSpeed = nextSpeed(moveSpeedMin, moveSpeedMax);
+  currSpeed = nextSpeed(moveSpeedStart, moveSpeedMax);
   int correction = speedBump();
-  int leftSpeed = getLeftSpeed(correction, moveSpeedMax);
-  int rightSpeed = getRightSpeed(correction, moveSpeedMax);
+  int leftSpeed = getLeftSpeed(correction, moveSpeedMaxL);
+  int rightSpeed = getRightSpeed(correction, moveSpeedMaxR);
   debugOdom(leftSpeed, rightSpeed, correction, currSpeed, totalDiffCnt, totalDiffs);
   motorLeft.run(FORWARD);
   motorLeft.setSpeed(leftSpeed);
@@ -177,7 +182,7 @@ void moveBackward(){
   running = true;
   leftHeading = 2;
   rightHeading = 2;
-  currSpeed = nextSpeed(moveSpeedMin, moveBackSpeedMax);
+  currSpeed = nextSpeed(moveSpeedStart, moveBackSpeedMax);
   int correction = speedBump();
   int leftSpeed = getLeftSpeed(correction, moveBackSpeedMax);
   int rightSpeed = getRightSpeed(correction, moveBackSpeedMax);
@@ -465,8 +470,8 @@ void publishOdom(double vel_lx, double vel_az, unsigned long time){
 void handleOdometry(unsigned long time){
   double vel_lx = 0; // odom linear x velocity
   double vel_az = 0; // odom angular z velocity
-  long totalCoder0 = coder0;  // this method of holding the encoder value
-  long totalCoder1 = coder1;  // prevents us from losing any ticks
+  totalCoder0 = coder0;  // this method of holding the encoder value
+  totalCoder1 = coder1;  // prevents us from losing any ticks
   currCoder0 = totalCoder0 - prevCoder0;
   currCoder1 = totalCoder1 - prevCoder1;
   prevCoder0 = totalCoder0;
