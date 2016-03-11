@@ -1,0 +1,23 @@
+<launch>
+  <arg name="mobile_base_port" default="/dev/ttyACM0" />
+  <arg name="rviz" default="false" />
+  <arg name="joy" default="false" />
+  <arg name="joystick" default="/dev/input/js0" />
+  <arg name="stereo" default="false" />
+
+  <param name="robot_description" textfile="$(find vendbot)/urdf/robot.urdf" />
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publister" />
+
+
+  <include file="mobile_base.launch" >
+    <arg name="mobile_base_port" value="$(arg mobile_base_port)" />
+    <arg name="rviz" value="$(arg rviz)" />
+    <arg name="joy" value="$(arg joy)" />
+    <arg name="joystick" value="$(arg joystick)" />
+    <arg name="stereo" value="$(arg stereo)" />
+  </include>
+
+  <include file="head_unit.launch" />
+
+</launch>
