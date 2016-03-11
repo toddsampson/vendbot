@@ -1,55 +1,13 @@
 <launch>
   <arg name="mobile_base_port" default="/dev/ttyACM0" />
-  <arg name="rviz" default="false" />
-  <arg name="joy" default="false" />
-  <arg name="joystick" default="/dev/input/js0" />
-  <arg name="stereo" default="false" />
 
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
 
   <include file="$(find rosserial_server)/launch/serial.launch">
     <arg name="port" value="$(arg mobile_base_port)" />
   </include>
-<!--
-  <param name="robot_description" textfile="$(find vendbot)/urdf/robot.urdf" /> 
-  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publister" />
--->
+
   <node pkg="vendbot" type="base_controller" name="base_controller" />
-  
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find vendbot)/vendbot.rviz" if="$(arg rviz)" /> 
-
-  <group ns="stereo" if="$(arg stereo)">
-    <node name="left" pkg="usb_cam" type="usb_cam_node" output="screen" >
-      <param name="video_device" value="/dev/video2" />
-      <param name="image_width" value="640" />
-      <param name="image_height" value="480" />
-      <param name="pixel_format" value="mjpeg" />
-      <param name="camera_frame_id" value="left" />
-      <param name="io_method" value="mmap"/>
-      <param name="camera_info_url" type="string" value="file://$(find vendbot)/calibration/left.yaml" />
-    </node>
-    <node name="right" pkg="usb_cam" type="usb_cam_node" output="screen" >
-      <param name="video_device" value="/dev/video1" />
-      <param name="image_width" value="640" />
-      <param name="image_height" value="480" />
-      <param name="pixel_format" value="mjpeg" />
-      <param name="camera_frame_id" value="right" />
-      <param name="io_method" value="mmap"/>
-      <param name="camera_info_url" type="string" value="file://$(find vendbot)/calibration/right.yaml" />
-    </node>
-    <node name="stereo_image_proc" pkg="stereo_image_proc" type="stereo_image_proc" output="screen">
-      <param name="approximate_sync" type="bool" value="true" />
-    </node>
-  </group>
-
-  <group if="$(arg joy)">
-    <node name="joy_node" pkg="joy" type="joy_node" output="screen">
-      <param name="dev" value="$(arg joystick)" />
-      <param name="coalesce_interval" value="0.05" />
-    </node>
-    <node name="teleop_node" pkg="teleop_twist_joy" type="teleop_node" output="screen" />
-  </group>
 
 </launch>
 
