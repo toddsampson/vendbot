@@ -12,6 +12,7 @@
   <xacro:property name="pi" value="3.14159265359" />
 
   <!-- fictitious center point between wheels for navigation -->
+<!--
   <link name="base_link">
     <visual>
       <geometry>
@@ -22,7 +23,7 @@
       </material>
     </visual>
   </link>
-
+-->
   <!-- Bot platforms -->
   <xacro:macro name="platform" params="pos">
     <link name="platform_${pos}">
@@ -48,7 +49,7 @@
   <xacro:platform_joint pos="base" xyz="0 0 ${wheel_r + wheel_h_offset}" />
   <xacro:platform_joint pos="upper" xyz="0 0 ${wheel_r + wheel_h_offset + 0.08}" />
 
-
+<!--
 <link name="kinect_link">
   <visual>
     <geometry>
@@ -102,6 +103,7 @@
                izz="0.0001" />
   </inertial>
 </link>
+-->
 
 <!-- Differential Drive Wheels -->
   <xacro:macro name="wheel" params="pos rpy">

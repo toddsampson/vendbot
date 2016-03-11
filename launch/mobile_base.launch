@@ -11,7 +11,7 @@
     <arg name="port" value="$(arg mobile_base_port)" />
   </include>
 
-  <param name="robot_description" textfile="$(find vendbot)/urdf/mobile_base.urdf" /> 
+  <param name="robot_description" textfile="$(find vendbot)/urdf/robot.urdf" /> 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publister" />
   <node pkg="vendbot" type="base_controller" name="base_controller" />
