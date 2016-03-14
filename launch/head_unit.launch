@@ -7,7 +7,7 @@
    <param name="port_number" value="11115" type="int"/>
    <param name="camera_name" value="fisheye_camera"/>
 </node>
-<!--
+
 <node pkg="tango_streamer" type="pose_server.py" name="pose_server">
    <param name="port_number" value="11113" type="int"/>
    <param name="pose_topic" value="tango_pose"/>
@@ -19,7 +19,7 @@
    <param name="pose_topic" value="tango_area_pose"/>
    <param name="coordinate_frame" value="area_learning"/>
 </node>
--->
+
 <node pkg="tango_streamer" type="intrinsics_server.py" name="intrinsics_server_color">
    <param name="port_number" value="11114" type="int"/>
    <param name="camera_name" value="color_camera"/>
@@ -78,6 +78,12 @@
 <!--
 <node pkg="vendbot" type="imu_to_tf" name="imu_to_tf" />
 -->
-
+<!--
+<include file="$(find rgbd_launch)/launch/processing.launch">
+  <arg name="ir_processing" value="false" />
+  <arg name="depth_registered_processing" value="false" />
+  <arg name="hw_registered_processing" value="false" />
+</include>
+-->
 </launch>
 
