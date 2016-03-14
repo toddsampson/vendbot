@@ -20,51 +20,41 @@
     <origin xyz="0 0 1.2192" rpy="0 0 0" />
   </joint>
 
+  <!-- IMU -->
+  <link name="imu">
+    <visual>
+      <geometry>
+        <box size="0.0001 0.0001 0.0001"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 192 0 1" />
+      </material>
+    </visual>
+  </link>
 
-  <!-- Bot platforms -->
+  <joint name="head_unit_to_imu" type="fixed">
+    <parent link="head_unit" />
+    <child link="imu" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
 
-<!--
-  <xacro:macro name="platform" params="pos">
-    <link name="platform_${pos}">
-      <visual>
-        <geometry>
-          <box size="${platform_l} ${platform_w} ${platform_h}"/>
-        </geometry>
-        <material name="white">
-          <color rgba="1 1 1 1" />
-        </material>
-      </visual>
-    </link>
-  </xacro:macro>
-  <xacro:platform pos="base" />
-  <xacro:platform pos="upper" />
-  <xacro:macro name="platform_joint" params="pos xyz">
-    <joint name="platform_joint_${pos}" type="fixed">
-      <parent link="base_link" />
-      <child link="platform_${pos}" />
-      <origin xyz="${xyz}" rpy="0 0 0" />
-    </joint>
-  </xacro:macro>
-  <xacro:platform_joint pos="base" xyz="0 0 ${wheel_r + wheel_h_offset}" />
-  <xacro:platform_joint pos="upper" xyz="0 0 ${wheel_r + wheel_h_offset + 0.08}" />
+  <!-- GPS UNIT -->
+  <link name="fix">
+    <visual>
+      <geometry>
+        <box size="0.0001 0.0001 0.0001"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 192 1" />
+      </material>
+    </visual>
+  </link>
 
-<link name="kinect_link">
-  <visual>
-    <geometry>
-      <box size="0.064 0.121 0.0381" />
-    </geometry>
-    <material name="Blue" />
-  </visual>
-  <inertial>
-      <mass value="0.0001" />
-      <origin xyz="0 0 0" />
-      <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
-               iyy="0.0001" iyz="0.0" 
-               izz="0.0001" />
-  </inertial>
-</link>
--->
-
+  <joint name="head_unit_to_fix" type="fixed">
+    <parent link="head_unit" />
+    <child link="fix" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>  
 
 <!--
 <node pkg="tf" type="static_transform_publisher" name="device_to_depth_cam" args="0 0 0 0 0.24 0 device depth_camera 10"/>
