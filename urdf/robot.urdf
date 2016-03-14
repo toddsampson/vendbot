@@ -316,6 +316,36 @@
     <child link="fix"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
+  <link name="depth_camera">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 192 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="head_unit_to_depth_camera" type="fixed">
+    <parent link="head_unit"/>
+    <child link="depth_camera"/>
+    <origin rpy="0 0 0" xyz="0 0.24 0"/>
+  </joint>
+  <link name="fisheye_camera">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+      <material name="red">
+        <color rgba="192 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="head_unit_to_fisheye_camera" type="fixed">
+    <parent link="head_unit"/>
+    <child link="fisheye_camera"/>
+    <origin rpy="0 0 0" xyz="0 0.24 0"/>
+  </joint>
   <!--
 <node pkg="tf" type="static_transform_publisher" name="device_to_depth_cam" args="0 0 0 0 0.24 0 device depth_camera 10"/>
 <node pkg="tf" type="static_transform_publisher" name="fisheye_to_depth_cam" args="0 -0.05 0 0 0 0 depth_camera fisheye_camera 10"/>
