@@ -344,7 +344,7 @@
   <joint name="head_unit_to_fisheye_camera" type="fixed">
     <parent link="head_unit"/>
     <child link="fisheye_camera"/>
-    <origin rpy="0 0 0" xyz="0 0.24 0"/>
+    <origin rpy="0 0 0" xyz="0 0.4 0"/>
   </joint>
   <!--
 <node pkg="tf" type="static_transform_publisher" name="device_to_depth_cam" args="0 0 0 0 0.24 0 device depth_camera 10"/>

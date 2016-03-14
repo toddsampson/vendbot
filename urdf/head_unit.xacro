@@ -87,7 +87,7 @@
   <joint name="head_unit_to_fisheye_camera" type="fixed">
     <parent link="head_unit" />
     <child link="fisheye_camera" />
-    <origin xyz="0 0.24 0" rpy="0 0 0" />
+    <origin xyz="0 0.4 0" rpy="0 0 0" />
   </joint>  
 
 <!--
