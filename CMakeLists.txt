@@ -139,6 +139,7 @@ include_directories(
 ## Declare a C++ executable
 # add_executable(vendbot_node src/vendbot_node.cpp)
 add_executable(base_controller src/base_controller.cpp)
+add_executable(converter src/converter.cpp)
 add_executable(imu_to_tf src/imu_to_tf.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -150,6 +151,7 @@ add_executable(imu_to_tf src/imu_to_tf.cpp)
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(base_controller ${catkin_LIBRARIES})
+target_link_libraries(converter ${catkin_LIBRARIES})
 target_link_libraries(imu_to_tf ${catkin_LIBRARIES})
 #############
 ## Install ##
