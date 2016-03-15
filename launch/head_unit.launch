@@ -55,8 +55,11 @@
 	<param name="camera_name" value="color_camera"/>
 </node>
 
-<node pkg="image_proc" type="image_proc" name="image_proc">
-  <env name="ROS_NAMESPACE" value="color_camera/image_raw"/>
+<node pkg="image_proc" type="image_proc" name="image_proc" ns="color_camera" />
+
+<node pkg="vendbot" type="converter" name="converter">
+  <remap from="points_in" to="point_cloud" />
+  <remap from="points_out" to="point_cloud2" />
 </node>
 
 <!--

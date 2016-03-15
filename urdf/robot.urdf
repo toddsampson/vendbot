@@ -319,7 +319,7 @@
   <link name="depth_camera">
     <visual>
       <geometry>
-        <box size="0.1 0.1 0.1"/>
+        <box size="0.05 0.05 0.05"/>
       </geometry>
       <material name="blue">
         <color rgba="0 0 192 1"/>
@@ -334,7 +334,7 @@
   <link name="fisheye_camera">
     <visual>
       <geometry>
-        <box size="0.1 0.1 0.1"/>
+        <box size="0.05 0.05 0.05"/>
       </geometry>
       <material name="red">
         <color rgba="192 0 0 1"/>
