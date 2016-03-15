@@ -1,4 +1,10 @@
 <launch>
+
+<!--
+<remap to="rgb/image_raw" from="color_camera/image_raw" />
+<remap to="depth/image_raw" from="point_cloud" />
+-->
+
 <node pkg="tango_streamer" type="image_server.py" name="image_server_color">
    <param name="port_number" value="11111" type="int"/>
    <param name="camera_name" value="color_camera"/>
@@ -49,6 +55,10 @@
 	<param name="camera_name" value="color_camera"/>
 </node>
 
+<node pkg="image_proc" type="image_proc" name="image_proc">
+  <env name="ROS_NAMESPACE" value="color_camera/image_raw"/>
+</node>
+
 <!--
   <group ns="stereo" if="$(arg stereo)">
     <node name="left" pkg="usb_cam" type="usb_cam_node" output="screen" >
@@ -78,12 +88,15 @@
 <!--
 <node pkg="vendbot" type="imu_to_tf" name="imu_to_tf" />
 -->
+
 <!--
-<include file="$(find rgbd_launch)/launch/processing.launch">
+<include file="$(find rgbd_launch)/launch/includes/processing.launch.xml">
+  <arg name="manager" value="rgbdman" />
   <arg name="ir_processing" value="false" />
   <arg name="depth_registered_processing" value="false" />
   <arg name="hw_registered_processing" value="false" />
 </include>
 -->
+
 </launch>
 
