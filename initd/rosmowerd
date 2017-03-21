@@ -1,0 +1,19 @@
+start_ros () {
+    source /opt/ros/setup.sh
+
+    roscore <>/dev/tty8 2>/dev/tty8 & disown
+    until rostopic list ; do sleep 1; done
+    roslaunch /home/robot1/catkin_ws/src/vendbot/launch/mower.launch <> /dev/tty9 2>/dev/tty9 & disown
+}
+
+stop_ros () {
+    source /opt/ros/setup.sh
+
+    #killall nodes
+    for i in $( rosnode list ); do
+    rosnode kill $i;
+    done
+
+    #stop roscore
+    killall roscore
+}
