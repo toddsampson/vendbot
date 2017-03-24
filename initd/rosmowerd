@@ -1,0 +1,28 @@
+# THIS IS OLD AND NOT WHAT WE ARE USING ANYMORE
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+
+start_ros () {
+    source /opt/ros/kinetic/setup.sh
+    roslaunch /home/robot1/catkin_ws/src/vendbot/launch/mower.launch <> /dev/tty9 2>/dev/tty9 & disown
+}
+
+stop_ros () {
+    source /opt/ros/kinetic/setup.sh
+
+    #killall nodes
+    for i in $( rosnode list ); do
+    rosnode kill $i;
+    done
+
+    #stop roscore
+    killall roscore
+}

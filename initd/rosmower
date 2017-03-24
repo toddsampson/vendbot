@@ -1,0 +1,57 @@
+#! /bin/bash
+# /etc/init.d/rosmower
+# OLD
+# OLD
+# OLD
+#
+# UNUSED
+#
+# OLD
+# OLD
+# OLD
+#
+# UNUSED
+#
+# OLD
+# OLD
+# OLD
+#
+# UNUSED
+#
+
+source /opt/ros/kinetic/setup.sh
+# dont think we need this since we are launch by full path the launch file
+#export ROS_PACKAGE_PATH=/home/robolab/ros/ROSMOWER:$ROS_PACKAGE_PATH
+export ROS_IP=192.168.0.1
+# initialze the pidfile
+ROSMOWER_PIDFILE='/var/run/rosmower.pid'
+ROS_USER=robot1
+touch $ROSMOWER_PIDFILE
+/bin/chown $ROS_USER\:$ROS_USER $ROSMOWER_PIDFILE
+# roslaunch vars
+ROSLAUNCH_BIN="/opt/ros/kinetic/bin/roslaunch"
+ROSLAUNCH_ARGS="--pid=$ROSMOWER_PIDFILE"
+# set path to launchfile
+ROSLAUNCH_FILE="/home/robot1/catkin_ws/src/vendbot/launch/mower.launch"
+# carry out specific functions when asked by the system
+case "$1" in
+  start)
+    echo "Starting rosmower service ..."
+    su -c "$ROSLAUNCH_BIN $ROSLAUNCH_ARGS $ROSLAUNCH_FILE" $ROS_USER &
+    ;;  
+  stop)
+    kill -2 $(cat $ROSMOWER_PIDFILE) > /dev/null
+    echo -n "" > $ROSMOWER_PIDFILE
+    echo "Stopping rosmower services ..."
+    ;;  
+  restart)
+    $0 stop
+    sleep 3
+    $0 start
+    ;;  
+  *)  
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+    ;;  
+esac
+exit 0
