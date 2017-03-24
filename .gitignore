@@ -47,4 +47,4 @@ qtcreator-*
 CATKIN_IGNORE
 
 # PlatformIO
-arduino/platformio/.*
+arduino/platformio/.pioenvs
