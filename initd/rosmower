@@ -1,5 +1,24 @@
 #! /bin/bash
 # /etc/init.d/rosmower
+# OLD
+# OLD
+# OLD
+#
+# UNUSED
+#
+# OLD
+# OLD
+# OLD
+#
+# UNUSED
+#
+# OLD
+# OLD
+# OLD
+#
+# UNUSED
+#
+
 source /opt/ros/kinetic/setup.sh
 # dont think we need this since we are launch by full path the launch file
 #export ROS_PACKAGE_PATH=/home/robolab/ros/ROSMOWER:$ROS_PACKAGE_PATH
