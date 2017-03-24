@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="mobile_base_port" default="/dev/ttyACM0" />
+  <arg name="mobile_base_port" default="/dev/arduinomega" />
 
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
 
