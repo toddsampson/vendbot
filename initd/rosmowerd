@@ -1,8 +1,17 @@
+# THIS IS OLD AND NOT WHAT WE ARE USING ANYMORE
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+# OLD
+
 start_ros () {
     source /opt/ros/kinetic/setup.sh
-
-    roscore <>/dev/tty8 2>/dev/tty8 & disown
-    until rostopic list ; do sleep 1; done
     roslaunch /home/robot1/catkin_ws/src/vendbot/launch/mower.launch <> /dev/tty9 2>/dev/tty9 & disown
 }
 
