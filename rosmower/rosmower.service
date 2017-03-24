@@ -1,0 +1,10 @@
+[Unit]
+Description=ROS Start
+
+[Service]
+User=robot
+EnvironmentFile=/home/robot/catkin_ws/src/vendot/launch/bash.env
+ExecStart=/opt/ros/kinetic/bin/roslaunch /home/robot/catkin_ws/src/vendbot/launch/mower.launch
+
+[Install]
+WantedBy=multi-user.target
