@@ -1,5 +1,14 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mower">
+
+  <xacro:property name="platform_l" value="0.876" />
+  <xacro:property name="platform_w" value="0.33" />
+  <xacro:property name="platform_h" value="0.33" />
+  <xacro:property name="wheel_r" value="0.121" />
+  <xacro:property name="wheel_l" value="0.068" />
+  <xacro:property name="wheel_gap" value="0.0125" />
+  
+
   <link name="base_link">
     <visual>
       <geometry>
@@ -15,7 +24,7 @@
   <link name="platform">
     <visual>
       <geometry>
-        <box size="0.876 0.622 0.33"/>
+        <box size="${platform_l} ${platform_w} ${platform_h}"/>
       </geometry>
       <material name="white">
         <color rgba="1 1 1 1" />
@@ -28,8 +37,35 @@
     <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
 
-  <!-- Differential Drive Wheels -->
-<!--
+  <link name="platform_f">
+    <visual>
+      <geometry>
+        <box size="0.432 0.622  ${platform_h}" />
+      </geometry>
+      <material name="white" />
+    </visual>
+  </link>
+  <joint name="platform_f_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="platform_f" />
+    <origin xyz="0.238 0  0" />
+  </joint>
+
+  <link name="platform_b">
+    <visual>
+      <geometry>
+        <box size="0.14  0.483 ${platform_h}" />
+      </geometry>
+      <material name="white" />
+    </visual>
+  </link>
+  <joint name="platform_b_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="platform_b" />
+    <origin xyz="-0.368 0 0" />
+  </joint>
+
+  <!-- Drive Wheels -->
     <xacro:macro name="wheel" params="pos rpy">
       <link name="wheel_${pos}">
         <visual>
@@ -53,12 +89,22 @@
         <origin rpy="0 0 0" xyz="${xyz}" />
       </joint>
     </xacro:macro>
-    <xacro:wheel_joint pos="left" xyz="0 ${(platform_w / 2) + (wheel_l / 2) + wheel_w_offset} 0" />
-    <xacro:wheel_joint pos="right" xyz="0 ${((platform_w / 2) + (wheel_l / 2) + wheel_w_offset) * -1} 0" />
+    <xacro:wheel_joint pos="left" xyz="-0.146 ${(platform_w / 2) + (wheel_l / 2) + wheel_gap} -${(platform_h / 2) - wheel_r + 0.025}" />
+    <xacro:wheel_joint pos="right" xyz="-0.146 ${((platform_w / 2) + (wheel_l / 2) + wheel_gap) * -1} -${(platform_h / 2) - wheel_r + 0.025}" />
 
--->
-
-
-
+<!-- Front Wheel -->
+  <link name="wheel_f">
+    <visual>
+      <geometry>
+        <sphere radius="0.1" />
+      </geometry>
+      <material name="black" />
+    </visual>
+  </link>
+  <joint name="wheel_f_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="wheel_f" />
+    <origin xyz="0.336 0 -${(platform_h / 2) - 0.1 + 0.025}" />
+  </joint>
 
 </robot>
