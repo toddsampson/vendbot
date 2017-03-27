@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="mower">
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1" />
+      </material>
+    </visual>
+  </link>
+
+  <!-- Bot platform -->
+  <link name="platform">
+    <visual>
+      <geometry>
+        <box size="0.876 0.622 0.33"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+  </link>
+  <joint name="platform_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="platform" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
+  <!-- Differential Drive Wheels -->
+<!--
+    <xacro:macro name="wheel" params="pos rpy">
+      <link name="wheel_${pos}">
+        <visual>
+          <geometry>
+            <cylinder radius="${wheel_r}" length="${wheel_l}" />
+          </geometry>
+          <origin rpy="${rpy}" />
+          <material name="black">
+            <color rgba="0 0 0 1" />
+          </material>
+        </visual>
+      </link>
+    </xacro:macro>
+    <xacro:wheel pos="right" rpy="${pi / 2} 0 0" />
+    <xacro:wheel pos="left" rpy="${(pi / 2) * -1} 0 0" />
+    <xacro:macro name="wheel_joint" params="pos xyz">
+      <joint name="wheel_${pos}_joint" type="continuous">
+        <parent link="base_link" />
+        <child link="wheel_${pos}" />
+        <axis xyz="0 1 0" />
+        <origin rpy="0 0 0" xyz="${xyz}" />
+      </joint>
+    </xacro:macro>
+    <xacro:wheel_joint pos="left" xyz="0 ${(platform_w / 2) + (wheel_l / 2) + wheel_w_offset} 0" />
+    <xacro:wheel_joint pos="right" xyz="0 ${((platform_w / 2) + (wheel_l / 2) + wheel_w_offset) * -1} 0" />
+
+-->
+
+
+
+
+</robot>
