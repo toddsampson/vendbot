@@ -104,5 +104,19 @@
     <child link="wheel_f"/>
     <origin xyz="0.336 0 -0.09"/>
   </joint>
+  <!-- GPS -->
+  <link name="gps">
+    <visual>
+      <geometry>
+        <box size="0.025 0.025 0.0125"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="gps"/>
+    <origin xyz="0 0 .4"/>
+  </joint>
 </robot>
 
