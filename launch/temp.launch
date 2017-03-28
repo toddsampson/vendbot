@@ -1,0 +1,14 @@
+<launch>
+	<param name="robot_description" textfile="../urdf/mower.urdf" />
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find urdf_tutorial)/urdf.rviz" required="true" />
+
+	<node name="nmea_navsat_driver" pkg="nmea_navsat_driver" type="nmea_serial_driver">
+		<param name="port" value="/dev/ttyUSB0" />
+		<param name="baud" value="115200" />
+	</node>
+	<node name="gps_common" pkg="gps_common" type="utm_odometry_node" />
+
+</launch>
+
